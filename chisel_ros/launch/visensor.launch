@@ -10,7 +10,7 @@
         <!-- param name="integration_weight" value="1"/ -->
         <param name="carving_dist_m" value="0.005"/>
         <param name="voxel_resolution_m" value="0.65"/>
-        <param name="far_plane_dist" value="120"/>  <!-- 120 -->
+        <param name="far_plane_dist" value="80"/>  <!-- 120 -->
 
         <param name="use_voxel_carving" value="false"/>
         <param name="use_color" value="true"/>
@@ -21,13 +21,13 @@
         <param name="fusion_mode" value="DepthImage"/>
         <!-- param name="fusion_mode" value="PointCloud"/ -->
 
-        <remap from="/depth_image" to="/blur/depth"/>
-        <remap from="/depth_camera_info" to="/blur/depth_info"/>
+        <remap from="/depth_image" to="/Model_blur/depth"/>
+        <remap from="/depth_camera_info" to="/Model_blur/depth_info"/>
         <!-- remap from="/color_image" to="/camera/rgb/image_rect_color"/ -->
-        <remap from="/color_image" to="/blur/image_grey"/>
-        <remap from="/color_camera_info" to="/blur/camera_info"/>
+        <remap from="/color_image" to="/Model_blur/image_grey"/>
+        <remap from="/color_camera_info" to="/Model_blur/camera_info"/>
 
-        <remap from="/camera/depth_registered/points" to="/blur/pc2"/>
+        <!-- remap from="/camera/depth_registered/points" to="/Model_blur/pc2"/ -->
 
     </node>
 </launch>
