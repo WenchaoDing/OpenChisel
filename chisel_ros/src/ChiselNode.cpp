@@ -18,6 +18,13 @@
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
+#define BACKWARD_HAS_DW 1
+#include <backward.hpp>
+namespace backward
+{
+backward::SignalHandling sh;
+} // namespace backward
+
 #include <ros/ros.h>
 #include <ros/node_handle.h>
 #include <chisel_ros/ChiselServer.h>

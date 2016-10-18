@@ -9,7 +9,7 @@
         <param name="truncation_scale" value="3.0"/>
         <!-- param name="integration_weight" value="1"/ -->
         <param name="carving_dist_m" value="0.10"/>
-        <param name="voxel_resolution_m" value="0.025"/>  <!-- 0.035 -->
+        <param name="voxel_resolution_m" value="0.1"/>  <!-- 0.025 -->
         <param name="far_plane_dist" value="10"/>  <!-- 120 -->
 
         <param name="use_voxel_carving" value="true"/>
