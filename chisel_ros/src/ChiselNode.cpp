@@ -22,23 +22,22 @@
 #include <backward.hpp>
 namespace backward
 {
-backward::SignalHandling sh;
+    backward::SignalHandling sh;
 } // namespace backward
 
 #include <ros/ros.h>
 #include <ros/node_handle.h>
 #include <chisel_ros/ChiselServer.h>
+#include <open_chisel/truncation/QuadraticTruncator.h>
+#include <open_chisel/truncation/InverseTruncator.h>
 
-int main(int argc, char** argv)
+int main(int argc, char **argv)
 {
     ROS_INFO("Starting up chisel node.");
     ros::init(argc, argv, "Chisel");
     ros::NodeHandle nh("~");
     int chunkSizeX, chunkSizeY, chunkSizeZ;
     double voxelResolution;
-    double truncationDistQuad;
-    double truncationDistLinear;
-    double truncationDistConst;
     double truncationDistScale;
     int weight;
     bool useCarving;
@@ -62,9 +61,6 @@ int main(int argc, char** argv)
     nh.param("chunk_size_x", chunkSizeX, 32);
     nh.param("chunk_size_y", chunkSizeY, 32);
     nh.param("chunk_size_z", chunkSizeZ, 32);
-    nh.param("truncation_constant", truncationDistConst, 0.001504);
-    nh.param("truncation_linear", truncationDistLinear, 0.00152);
-    nh.param("truncation_quadratic", truncationDistQuad, 0.0019);
     nh.param("truncation_scale", truncationDistScale, 8.0);
     nh.param("integration_weight", weight, 1);
     nh.param("use_voxel_carving", useCarving, true);
@@ -85,12 +81,12 @@ int main(int argc, char** argv)
     nh.param("chunk_box_topic", chunkBoxTopic, std::string("chunk_boxes"));
     nh.param("fusion_mode", modeString, std::string("DepthImage"));
 
-    if(modeString == "DepthImage")
+    if (modeString == "DepthImage")
     {
         ROS_INFO("Mode depth image");
         mode = chisel_ros::ChiselServer::FusionMode::DepthImage;
     }
-    else if(modeString == "PointCloud")
+    else if (modeString == "PointCloud")
     {
         ROS_INFO("Mode point cloud");
         mode = chisel_ros::ChiselServer::FusionMode::PointCloud;
@@ -102,79 +98,53 @@ int main(int argc, char** argv)
     }
 
     ROS_INFO("Subscribing.");
-    chisel::Vec4 truncation(truncationDistQuad, truncationDistLinear, truncationDistConst, truncationDistScale);
 
     chisel_ros::ChiselServerPtr server(new chisel_ros::ChiselServer(nh, chunkSizeX, chunkSizeY, chunkSizeZ, voxelResolution, useColor, mode));
-    server->SetupProjectionIntegrator(truncation, static_cast<uint16_t>(weight), useCarving, carvingDist);
 
-    if (mode == chisel_ros::ChiselServer::FusionMode::DepthImage)
+    //chisel::TruncatorPtr truncator(new chisel::QuadraticTruncator(truncationDistScale));
+    chisel::TruncatorPtr truncator(new chisel::InverseTruncator(truncationDistScale));
+
+    server->SetupProjectionIntegrator(truncator, static_cast<uint16_t>(weight), useCarving, carvingDist);
+
+    //ROS_ASSERT(mode == chisel_ros::ChiselServer::FusionMode::DepthImage);
+    //ROS_ASSERT(useColor && mode == chisel_ros::ChiselServer::FusionMode::DepthImage);
+
+    server->SetNearPlaneDist(nearPlaneDist);
+    server->SetFarPlaneDist(farPlaneDist);
+
+    if (depthImageTransform == colorImageTransform)
     {
-        server->SubscribeDepthImage(depthImageTopic, depthImageInfoTopic, depthImageTransform);
+        server->SubscribeAll(depthImageTopic, depthImageInfoTopic,
+                             colorImageTopic, colorImageInfoTopic,
+                             depthImageTransform,
+                             pointCloudTopic);
+        //server->SubscribePointCloud(pointCloudTopic);
     }
     else
     {
-        server->SubscribePointCloud(pointCloudTopic);
+        server->SubscribeDepthImage(depthImageTopic, depthImageInfoTopic, depthImageTransform);
+        server->SubscribeColorImage(colorImageTopic, colorImageInfoTopic, colorImageTransform);
     }
 
     server->SetupDepthPosePublisher("last_depth_pose");
     server->SetupDepthFrustumPublisher("last_depth_frustum");
 
-    server->SetNearPlaneDist(nearPlaneDist);
-    server->SetFarPlaneDist(farPlaneDist);
-    server->AdvertiseServices();
+    server->SetupColorPosePublisher("last_color_pose");
+    server->SetupColorFrustumPublisher("last_color_frustum");
 
-    if (useColor && mode == chisel_ros::ChiselServer::FusionMode::DepthImage)
-    {
-        server->SubscribeColorImage(colorImageTopic, colorImageInfoTopic, colorImageTransform);
-        server->SetupColorPosePublisher("last_color_pose");
-        server->SetupColorFrustumPublisher("last_color_frustum");
-    }
+    server->AdvertiseServices();
 
     server->SetBaseTransform(baseTransform);
     server->SetupMeshPublisher(meshTopic);
     server->SetupChunkBoxPublisher(chunkBoxTopic);
     ROS_INFO("Beginning to loop.");
 
-    ros::Rate loop_rate(100);
+    ros::spin();
+    //ros::Rate loop_rate(100);
 
-    while (ros::ok())
-    {
-        loop_rate.sleep();
-        ros::spinOnce();
-
-        if(!server->IsPaused() && server->HasNewData())
-        {
-            ROS_INFO("Got data.");
-            switch (server->GetMode())
-            {
-                case chisel_ros::ChiselServer::FusionMode::DepthImage:
-                    server->IntegrateLastDepthImage();
-                    break;
-                case chisel_ros::ChiselServer::FusionMode::PointCloud:
-                    server->IntegrateLastPointCloud();
-                    break;
-            }
-
-            server->PublishMeshes();
-            server->PublishChunkBoxes();
-
-            if(mode == chisel_ros::ChiselServer::FusionMode::DepthImage)
-            {
-                server->PublishDepthPose();
-                server->PublishDepthFrustum();
-
-                if(useColor)
-                {
-                    server->PublishColorPose();
-                    server->PublishColorFrustum();
-                }
-            }
-        }
-    }
-
+    //while (ros::ok())
+    //{
+    //    loop_rate.sleep();
+    //    ros::spinOnce();
+    //}
 }
-
-
-
-
-

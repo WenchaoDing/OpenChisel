@@ -19,57 +19,42 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#ifndef QUADRATICTRUNCATOR_H_
-#define QUADRATICTRUNCATOR_H_
+#ifndef INVERSETRUNCATOR_H_
+#define INVERSETRUNCATOR_H_
 
 namespace chisel
 {
 
-class QuadraticTruncator : public Truncator
+class InverseTruncator : public Truncator
 {
   public:
-    QuadraticTruncator() = delete;
+    InverseTruncator() = default;
 
-    QuadraticTruncator(float scale)
+    InverseTruncator(float scale)
         : scalingFactor(scale)
     {
     }
 
-    virtual ~QuadraticTruncator()
+    virtual ~InverseTruncator()
     {
     }
 
-    virtual float GetTruncationDistance(float reading) const
+    float GetTruncationDistance(float reading) const
     {
-        return std::abs(GetQuadraticTerm() * pow(reading, 2) + GetLinearTerm() * reading + GetConstantTerm()) * scalingFactor;
-    }
-
-    inline float GetQuadraticTerm() const
-    {
-        return quadraticTerm;
-    }
-    inline float GetLinearTerm() const
-    {
-        return linearTerm;
-    }
-    inline float GetConstantTerm() const
-    {
-        return constantTerm;
-    }
-    inline float GetScalingFactor() const
-    {
-        return scalingFactor;
+        float inv_reading = 1.0 / reading;
+        return (DEP_SAMPLE / (inv_reading * inv_reading)) * scalingFactor;
     }
 
   protected:
-    const float quadraticTerm = 0.0019 * 10;
-    const float linearTerm = 0.00152 * 10;
-    const float constantTerm = 0.001504 * 10;
+    const float BASE_LINE = 0.10;
+    const float FOCAL = 471.27;
+    const int DEP_CNT = 128;
+    const float DEP_SAMPLE = 1.0f / (BASE_LINE * FOCAL);
     const float scalingFactor;
 };
-typedef std::shared_ptr<QuadraticTruncator> QuadraticTruncatorPtr;
-typedef std::shared_ptr<const QuadraticTruncator> QuadraticTruncatorConstPtr;
+typedef std::shared_ptr<InverseTruncator> InverseTruncatorPtr;
+typedef std::shared_ptr<const InverseTruncator> InverseTruncatorConstPtr;
 
 } // namespace chisel
 
-#endif // QUADRATICTRUNCATOR_H_
+#endif // INVERSETRUNCATOR_H_
