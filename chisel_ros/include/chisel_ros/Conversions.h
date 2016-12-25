@@ -36,6 +36,7 @@
 #include <open_chisel/pointcloud/PointCloud.h>
 #include <pcl/filters/filter.h>
 #include <sensor_msgs/point_cloud_conversion.h>
+#include <nav_msgs/Odometry.h>
 
 namespace chisel_ros
 {
@@ -199,6 +200,7 @@ chisel::ColorImage<DataType> *ROSImgToColorImg(sensor_msgs::ImageConstPtr image)
     return toReturn;
 }
 
+/*
 inline chisel::Transform RosTfToChiselTf(const tf::StampedTransform &tf)
 {
     chisel::Transform transform;
@@ -215,6 +217,7 @@ inline chisel::Transform RosTfToChiselTf(const tf::StampedTransform &tf)
 
     return transform.inverse();
 }
+*/
 
 inline chisel::PinholeCamera RosCameraToChiselCamera(const sensor_msgs::CameraInfoConstPtr &camera)
 {

@@ -43,6 +43,7 @@
 #include <message_filters/subscriber.h>
 #include <message_filters/synchronizer.h>
 #include <message_filters/sync_policies/exact_time.h>
+#include <nav_msgs/Odometry.h>
 
 namespace chisel_ros
 {
@@ -137,11 +138,14 @@ class ChiselServer
     void ColorCameraInfoCallback(sensor_msgs::CameraInfoConstPtr cameraInfo);
     void ColorImageCallback(sensor_msgs::ImageConstPtr colorImage);
 
+    void OdometryCallback(nav_msgs::OdometryConstPtr odom);
+
     void SubscribeAll(const std::string &depth_imageTopic, const std::string &depth_infoTopic,
                       const std::string &color_imageTopic, const std::string &color_infoTopic,
-                      const std::string &transform, const std::string &point_cloud_topic);
+                      const std::string &transform, const std::string &odom_topic);
     void CallbackAll(sensor_msgs::ImageConstPtr depth_image, sensor_msgs::CameraInfoConstPtr depth_info,
-                     sensor_msgs::ImageConstPtr color_image, sensor_msgs::CameraInfoConstPtr color_info, sensor_msgs::PointCloud2ConstPtr point_cloud);
+                     sensor_msgs::ImageConstPtr color_image, sensor_msgs::CameraInfoConstPtr color_info,
+                     nav_msgs::OdometryConstPtr odom);
 
     void SubscribePointCloud(const std::string &topic);
     void PointCloudCallback(sensor_msgs::PointCloud2ConstPtr pointcloud);
@@ -215,7 +219,7 @@ class ChiselServer
 
     typedef message_filters::sync_policies::ExactTime<sensor_msgs::Image, sensor_msgs::CameraInfo,
                                                       sensor_msgs::Image, sensor_msgs::CameraInfo,
-                                                      sensor_msgs::PointCloud2> MySyncPolicy;
+                                                      nav_msgs::Odometry> MySyncPolicy;
     message_filters::Synchronizer<MySyncPolicy> *sync;
 
     chisel::ChiselPtr chiselMap;
@@ -243,6 +247,8 @@ class ChiselServer
     float farPlaneDist;
     bool isPaused;
     FusionMode mode;
+
+    message_filters::Subscriber<nav_msgs::Odometry> *sub_odom;
 };
 typedef std::shared_ptr<ChiselServer> ChiselServerPtr;
 typedef std::shared_ptr<const ChiselServer> ChiselServerConstPtr;

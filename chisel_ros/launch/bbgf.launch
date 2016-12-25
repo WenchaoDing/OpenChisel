@@ -19,6 +19,7 @@
         <param name="depth_image_transform" value="/ref_frame"/>
         <param name="color_image_transform" value="/ref_frame"/>
         <param name="fusion_mode" value="DepthImage"/>
+        <param name="odom_topic" value="/motion_stereo/odometry" />
 
         <remap from="/depth_image" to="/motion_stereo/depth/image_raw"/>
         <remap from="/depth_camera_info" to="/motion_stereo/depth/image_info"/>

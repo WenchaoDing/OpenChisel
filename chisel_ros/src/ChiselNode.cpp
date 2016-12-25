@@ -57,6 +57,7 @@ int main(int argc, char **argv)
     chisel_ros::ChiselServer::FusionMode mode;
     std::string modeString;
     std::string pointCloudTopic;
+    std::string odomTopic;
 
     nh.param("chunk_size_x", chunkSizeX, 32);
     nh.param("chunk_size_y", chunkSizeY, 32);
@@ -80,6 +81,7 @@ int main(int argc, char **argv)
     nh.param("mesh_topic", meshTopic, std::string("full_mesh"));
     nh.param("chunk_box_topic", chunkBoxTopic, std::string("chunk_boxes"));
     nh.param("fusion_mode", modeString, std::string("DepthImage"));
+    nh.param("odom_topic", odomTopic, std::string("/my_odometry"));
 
     if (modeString == "DepthImage")
     {
@@ -116,8 +118,7 @@ int main(int argc, char **argv)
     {
         server->SubscribeAll(depthImageTopic, depthImageInfoTopic,
                              colorImageTopic, colorImageInfoTopic,
-                             depthImageTransform,
-                             pointCloudTopic);
+                             depthImageTransform, odomTopic);
         //server->SubscribePointCloud(pointCloudTopic);
     }
     else

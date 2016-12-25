@@ -210,7 +210,7 @@ bool ChiselServer::Reset(chisel_msgs::ResetService::Request &request, chisel_msg
 void ChiselServer::SubscribeAll(
     const std::string &depth_imageTopic, const std::string &depth_infoTopic,
     const std::string &color_imageTopic, const std::string &color_infoTopic,
-    const std::string &transform, const std::string &point_cloud_topic)
+    const std::string &transform, const std::string &odom_topic)
 {
     depthCamera.imageTopic = depth_imageTopic;
     depthCamera.infoTopic = depth_infoTopic;
@@ -224,29 +224,48 @@ void ChiselServer::SubscribeAll(
     colorCamera.sub_image = new message_filters::Subscriber<sensor_msgs::Image>(nh, color_imageTopic, 100);
     colorCamera.sub_info = new message_filters::Subscriber<sensor_msgs::CameraInfo>(nh, color_infoTopic, 100);
 
-    pointcloudTopic.cloudTopic = point_cloud_topic;
-    pointcloudTopic.gotCloud = false;
-    pointcloudTopic.gotPose = false;
-    pointcloudTopic.sub_point_cloud = new message_filters::Subscriber<sensor_msgs::PointCloud2>(nh, point_cloud_topic, 100);
+    sub_odom = new message_filters::Subscriber<nav_msgs::Odometry>(nh,odom_topic,100);
 
     sync = new message_filters::Synchronizer<MySyncPolicy>(MySyncPolicy(1000),
                                                            *(depthCamera.sub_image), *(depthCamera.sub_info),
                                                            *(colorCamera.sub_image), *(colorCamera.sub_info),
-                                                           *(pointcloudTopic.sub_point_cloud));
+                                                           *(sub_odom));
     sync->registerCallback(boost::bind(&ChiselServer::CallbackAll, this, _1, _2, _3, _4, _5));
 }
 
 void ChiselServer::CallbackAll(
     sensor_msgs::ImageConstPtr depth_image, sensor_msgs::CameraInfoConstPtr depth_info,
     sensor_msgs::ImageConstPtr color_image, sensor_msgs::CameraInfoConstPtr color_info,
-    sensor_msgs::PointCloud2ConstPtr point_cloud)
+    nav_msgs::OdometryConstPtr odom)
 {
+    OdometryCallback(odom);
+
     ColorCameraInfoCallback(color_info);
     DepthCameraInfoCallback(depth_info);
 
     ColorImageCallback(color_image);
-    PointCloudCallback(point_cloud);
     DepthImageCallback(depth_image);
+}
+
+void ChiselServer::OdometryCallback(nav_msgs::OdometryConstPtr odom)
+{
+    chisel::Transform transform;
+    transform.translation()(0) = odom->pose.pose.position.x;
+    transform.translation()(1) = odom->pose.pose.position.y;
+    transform.translation()(2) = odom->pose.pose.position.z;
+
+    chisel::Quaternion quat;
+    quat.x() = odom->pose.pose.orientation.x;
+    quat.y() = odom->pose.pose.orientation.y;
+    quat.z() = odom->pose.pose.orientation.z;
+    quat.w() = odom->pose.pose.orientation.w;
+    transform.linear() = quat.toRotationMatrix();
+
+    colorCamera.lastPose = transform;
+    depthCamera.lastPose = colorCamera.lastPose;
+    pointcloudTopic.lastPose = colorCamera.lastPose;
+
+    colorCamera.gotPose = depthCamera.gotPose = pointcloudTopic.gotPose = true;
 }
 
 void ChiselServer::SubscribeDepthImage(const std::string &imageTopic, const std::string &infoTopic, const std::string &transform)
@@ -305,31 +324,6 @@ void ChiselServer::DepthImageCallback(sensor_msgs::ImageConstPtr depthImage)
     if (IsPaused())
         return;
     SetDepthImage(depthImage);
-
-    bool gotTransform = false;
-    tf::StampedTransform tf;
-
-    int tries = 0;
-    int maxTries = 1;
-
-    while (!gotTransform && tries < maxTries)
-    {
-        tries++;
-        try
-        {
-            transformListener.waitForTransform(depthCamera.transform, baseTransform, depthImage->header.stamp, ros::Duration(0.1));
-            transformListener.lookupTransform(depthCamera.transform, baseTransform, depthImage->header.stamp, tf);
-            depthCamera.gotPose = true;
-            gotTransform = true;
-        }
-        catch (std::exception &e)
-        {
-            ros::Rate lookupRate(0.5f);
-            ROS_WARN("%s\n", e.what());
-        }
-    }
-
-    depthCamera.lastPose = RosTfToChiselTf(tf);
 
     hasNewData = true;
     if (!IsPaused() && HasNewData())
@@ -409,31 +403,6 @@ void ChiselServer::ColorImageCallback(sensor_msgs::ImageConstPtr colorImage)
     if (IsPaused())
         return;
     SetColorImage(colorImage);
-
-    bool gotTransform = false;
-    tf::StampedTransform tf;
-
-    int tries = 0;
-    int maxTries = 1;
-
-    while (!gotTransform && tries < maxTries)
-    {
-        tries++;
-        try
-        {
-            transformListener.waitForTransform(colorCamera.transform, baseTransform, colorImage->header.stamp, ros::Duration(0.5));
-            transformListener.lookupTransform(colorCamera.transform, baseTransform, colorImage->header.stamp, tf);
-            colorCamera.gotPose = true;
-            gotTransform = true;
-        }
-        catch (std::exception &e)
-        {
-            ros::Rate lookupRate(0.5f);
-            ROS_WARN("%s\n", e.what());
-        }
-    }
-
-    colorCamera.lastPose = RosTfToChiselTf(tf);
 }
 
 void ChiselServer::SubscribePointCloud(const std::string &topic)
@@ -455,30 +424,7 @@ void ChiselServer::PointCloudCallback(sensor_msgs::PointCloud2ConstPtr pointclou
     }
     ROSPointCloudToChisel(pointcloud, lastPointCloud.get());
     pointcloudTopic.transform = pointcloud->header.frame_id;
-    bool gotTransform = false;
-    tf::StampedTransform tf;
 
-    int tries = 0;
-    int maxTries = 1;
-
-    while (!gotTransform && tries < maxTries)
-    {
-        tries++;
-        try
-        {
-            transformListener.waitForTransform(pointcloudTopic.transform, baseTransform, pointcloud->header.stamp, ros::Duration(0.5));
-            transformListener.lookupTransform(pointcloudTopic.transform, baseTransform, pointcloud->header.stamp, tf);
-            pointcloudTopic.gotPose = true;
-            gotTransform = true;
-        }
-        catch (std::exception &e)
-        {
-            ros::Rate lookupRate(0.5f);
-            ROS_WARN("%s\n", e.what());
-        }
-    }
-
-    pointcloudTopic.lastPose = RosTfToChiselTf(tf);
     pointcloudTopic.lastTimestamp = pointcloud->header.stamp;
     hasNewData = true;
 }
