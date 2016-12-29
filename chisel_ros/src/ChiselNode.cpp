@@ -57,7 +57,13 @@ int main(int argc, char **argv)
     chisel_ros::ChiselServer::FusionMode mode;
     std::string modeString;
     std::string pointCloudTopic;
-    std::string odomTopic;
+    std::string odomTopic,transform_name;
+
+    bool three_camera_mode;
+    std::string left_odom_topic, left_depth_image, left_depth_camera_info, left_color_image, left_color_camera_info;
+    std::string right_odom_topic, right_depth_image, right_depth_camera_info, right_color_image, right_color_camera_info;
+
+    std::vector<std::string> depthImageTopic_vec, depthImageInfoTopic_vec, colorImageTopic_vec, colorImageInfoTopic_vec, odomTopic_vec;
 
     nh.param("chunk_size_x", chunkSizeX, 32);
     nh.param("chunk_size_y", chunkSizeY, 32);
@@ -73,15 +79,53 @@ int main(int argc, char **argv)
     nh.param("depth_image_topic", depthImageTopic, std::string("/depth_image"));
     nh.param("point_cloud_topic", pointCloudTopic, std::string("/camera/depth_registered/points"));
     nh.param("depth_image_info_topic", depthImageInfoTopic, std::string("/depth_camera_info"));
-    nh.param("depth_image_transform", depthImageTransform, std::string("/camera_depth_optical_frame"));
+    nh.param("transform_name", transform_name, std::string("/camera_depth_optical_frame"));
     nh.param("color_image_topic", colorImageTopic, std::string("/color_image"));
     nh.param("color_image_info_topic", colorImageInfoTopic, std::string("/color_camera_info"));
-    nh.param("color_image_transform", colorImageTransform, std::string("/camera_rgb_optical_frame"));
     nh.param("base_transform", baseTransform, std::string("/camera_link"));
     nh.param("mesh_topic", meshTopic, std::string("full_mesh"));
     nh.param("chunk_box_topic", chunkBoxTopic, std::string("chunk_boxes"));
     nh.param("fusion_mode", modeString, std::string("DepthImage"));
-    nh.param("odom_topic", odomTopic, std::string("/my_odometry"));
+    nh.param("odom_topic", odomTopic, std::string("/odom_topic"));
+
+    depthImageTopic_vec.clear();
+    depthImageInfoTopic_vec.clear();
+    colorImageTopic_vec.clear();
+    colorImageInfoTopic_vec.clear();
+    odomTopic_vec.clear();
+    depthImageTopic_vec.push_back(depthImageTopic);
+    depthImageInfoTopic_vec.push_back(depthImageInfoTopic);
+    colorImageTopic_vec.push_back(colorImageTopic);
+    colorImageInfoTopic_vec.push_back(colorImageInfoTopic);
+    odomTopic_vec.push_back(odomTopic);
+
+    nh.param("three_camera_mode", three_camera_mode, false);
+    if (three_camera_mode)
+    {
+        left_odom_topic = "/left_odom_topic";
+        left_depth_image = "/left_depth_image";
+        left_depth_camera_info = "/left_depth_camera_info";
+        left_color_image = "/left_color_image";
+        left_color_camera_info = "/left_color_camera_info";
+
+        odomTopic_vec.push_back(left_odom_topic);
+        depthImageTopic_vec.push_back(left_depth_image);
+        depthImageInfoTopic_vec.push_back(left_depth_camera_info);
+        colorImageTopic_vec.push_back(left_color_image);
+        colorImageInfoTopic_vec.push_back(left_color_camera_info);
+
+        right_odom_topic = "/right_odom_topic";
+        right_depth_image = "/right_depth_image";
+        right_depth_camera_info = "/right_depth_camera_info";
+        right_color_image = "/right_color_image";
+        right_color_camera_info = "/right_color_camera_info";
+
+        odomTopic_vec.push_back(right_odom_topic);
+        depthImageTopic_vec.push_back(right_depth_image);
+        depthImageInfoTopic_vec.push_back(right_depth_camera_info);
+        colorImageTopic_vec.push_back(right_color_image);
+        colorImageInfoTopic_vec.push_back(right_color_camera_info);
+    }
 
     if (modeString == "DepthImage")
     {
@@ -108,30 +152,12 @@ int main(int argc, char **argv)
 
     server->SetupProjectionIntegrator(truncator, static_cast<uint16_t>(weight), useCarving, carvingDist);
 
-    //ROS_ASSERT(mode == chisel_ros::ChiselServer::FusionMode::DepthImage);
-    //ROS_ASSERT(useColor && mode == chisel_ros::ChiselServer::FusionMode::DepthImage);
-
     server->SetNearPlaneDist(nearPlaneDist);
     server->SetFarPlaneDist(farPlaneDist);
 
-    if (depthImageTransform == colorImageTransform)
-    {
-        server->SubscribeAll(depthImageTopic, depthImageInfoTopic,
-                             colorImageTopic, colorImageInfoTopic,
-                             depthImageTransform, odomTopic);
-        //server->SubscribePointCloud(pointCloudTopic);
-    }
-    else
-    {
-        server->SubscribeDepthImage(depthImageTopic, depthImageInfoTopic, depthImageTransform);
-        server->SubscribeColorImage(colorImageTopic, colorImageInfoTopic, colorImageTransform);
-    }
-
-    server->SetupDepthPosePublisher("last_depth_pose");
-    server->SetupDepthFrustumPublisher("last_depth_frustum");
-
-    server->SetupColorPosePublisher("last_color_pose");
-    server->SetupColorFrustumPublisher("last_color_frustum");
+    server->SubscribeAll(depthImageTopic_vec, depthImageInfoTopic_vec,
+                         colorImageTopic_vec, colorImageInfoTopic_vec,
+                         transform_name, odomTopic_vec);
 
     server->AdvertiseServices();
 

@@ -78,6 +78,7 @@ class ChiselServer
 
         message_filters::Subscriber<sensor_msgs::Image> *sub_image;
         message_filters::Subscriber<sensor_msgs::CameraInfo> *sub_info;
+        message_filters::Subscriber<nav_msgs::Odometry> *sub_odom;
     };
 
     struct RosPointCloudTopic
@@ -95,6 +96,8 @@ class ChiselServer
     ChiselServer();
     ChiselServer(const ros::NodeHandle &nodeHanlde, int chunkSizeX, int chunkSizeY, int chunkSizeZ, float resolution, bool color, FusionMode fusionMode);
     virtual ~ChiselServer();
+
+    void AdvertiseServices();
 
     inline chisel::ChiselPtr GetChiselMap()
     {
@@ -117,40 +120,37 @@ class ChiselServer
     void SetupProjectionIntegrator(chisel::TruncatorPtr truncator, uint16_t weight, bool useCarving, float carvingDist);
     void SetupMeshPublisher(const std::string &meshTopic);
     void SetupChunkBoxPublisher(const std::string &boxTopic);
-    void SetupDepthPosePublisher(const std::string &depthPoseTopic);
-    void SetupColorPosePublisher(const std::string &colorPoseTopic);
-    void SetupDepthFrustumPublisher(const std::string &frustumTopic);
-    void SetupColorFrustumPublisher(const std::string &frustumTopic);
 
     void PublishMeshes();
     void PublishChunkBoxes();
     void PublishLatestChunkBoxes();
-    void PublishDepthPose();
-    void PublishColorPose();
-    void PublishDepthFrustum();
-    void PublishColorFrustum();
 
-    void SubscribeDepthImage(const std::string &depthImageTopic, const std::string &cameraInfoTopic, const std::string &transform);
-    void DepthCameraInfoCallback(sensor_msgs::CameraInfoConstPtr cameraInfo);
-    void DepthImageCallback(sensor_msgs::ImageConstPtr depthImage);
+    void OdometryCallback(nav_msgs::OdometryConstPtr odom, int i);
+    void DepthCameraInfoCallback(sensor_msgs::CameraInfoConstPtr cameraInfo, int i);
+    void DepthImageCallback(sensor_msgs::ImageConstPtr depthImage, int i);
+    void ColorCameraInfoCallback(sensor_msgs::CameraInfoConstPtr cameraInfo, int i);
+    void ColorImageCallback(sensor_msgs::ImageConstPtr colorImage, int i);
 
-    void SubscribeColorImage(const std::string &colorImageTopic, const std::string &cameraInfoTopic, const std::string &transform);
-    void ColorCameraInfoCallback(sensor_msgs::CameraInfoConstPtr cameraInfo);
-    void ColorImageCallback(sensor_msgs::ImageConstPtr colorImage);
-
-    void OdometryCallback(nav_msgs::OdometryConstPtr odom);
-
-    void SubscribeAll(const std::string &depth_imageTopic, const std::string &depth_infoTopic,
-                      const std::string &color_imageTopic, const std::string &color_infoTopic,
-                      const std::string &transform, const std::string &odom_topic);
-    void CallbackAll(sensor_msgs::ImageConstPtr depth_image, sensor_msgs::CameraInfoConstPtr depth_info,
-                     sensor_msgs::ImageConstPtr color_image, sensor_msgs::CameraInfoConstPtr color_info,
-                     nav_msgs::OdometryConstPtr odom);
+    void SubscribeAll(const std::vector<std::string> &depth_imageTopic, const std::vector<std::string> &depth_infoTopic,
+                      const std::vector<std::string> &color_imageTopic, const std::vector<std::string> &color_infoTopic,
+                      const std::string &transform, const std::vector<std::string> &odom_topic);
+    void CallbackAll_0(
+        sensor_msgs::ImageConstPtr depth_image, sensor_msgs::CameraInfoConstPtr depth_info,
+        sensor_msgs::ImageConstPtr color_image, sensor_msgs::CameraInfoConstPtr color_info,
+        nav_msgs::OdometryConstPtr odom);
+    void CallbackAll_1(
+        sensor_msgs::ImageConstPtr depth_image, sensor_msgs::CameraInfoConstPtr depth_info,
+        sensor_msgs::ImageConstPtr color_image, sensor_msgs::CameraInfoConstPtr color_info,
+        nav_msgs::OdometryConstPtr odom);
+    void CallbackAll_2(
+        sensor_msgs::ImageConstPtr depth_image, sensor_msgs::CameraInfoConstPtr depth_info,
+        sensor_msgs::ImageConstPtr color_image, sensor_msgs::CameraInfoConstPtr color_info,
+        nav_msgs::OdometryConstPtr odom);
 
     void SubscribePointCloud(const std::string &topic);
     void PointCloudCallback(sensor_msgs::PointCloud2ConstPtr pointcloud);
 
-    void IntegrateLastDepthImage();
+    void IntegrateLastDepthImage(int i);
     void IntegrateLastPointCloud();
     void FillMarkerTopicWithMeshes(visualization_msgs::Marker *marker, visualization_msgs::Marker *marker2);
     inline void SetBaseTransform(const std::string &frameName)
@@ -194,8 +194,6 @@ class ChiselServer
         isPaused = paused;
     }
 
-    void AdvertiseServices();
-
     inline FusionMode GetMode()
     {
         return mode;
@@ -205,12 +203,10 @@ class ChiselServer
         mode = m;
     }
 
-    void SetDepthImage(const sensor_msgs::ImageConstPtr &img);
-    void SetDepthPose(const Eigen::Affine3f &tf);
-    void SetColorImage(const sensor_msgs::ImageConstPtr &img);
-    void SetColorPose(const Eigen::Affine3f &tf);
-    void SetColorCameraInfo(const sensor_msgs::CameraInfoConstPtr &info);
-    void SetDepthCameraInfo(const sensor_msgs::CameraInfoConstPtr &info);
+    void SetDepthImage(const sensor_msgs::ImageConstPtr &img, int);
+    void SetColorImage(const sensor_msgs::ImageConstPtr &img, int);
+    void SetColorCameraInfo(const sensor_msgs::CameraInfoConstPtr &info, int);
+    void SetDepthCameraInfo(const sensor_msgs::CameraInfoConstPtr &info, int);
 
   protected:
     visualization_msgs::Marker CreateFrustumMarker(const chisel::Frustum &frustum);
@@ -220,12 +216,11 @@ class ChiselServer
     typedef message_filters::sync_policies::ExactTime<sensor_msgs::Image, sensor_msgs::CameraInfo,
                                                       sensor_msgs::Image, sensor_msgs::CameraInfo,
                                                       nav_msgs::Odometry> MySyncPolicy;
-    message_filters::Synchronizer<MySyncPolicy> *sync;
+    std::vector< message_filters::Synchronizer<MySyncPolicy>* > sync;
 
     chisel::ChiselPtr chiselMap;
     tf::TransformListener transformListener;
-    std::shared_ptr<chisel::DepthImage<DepthData>> lastDepthImage;
-    std::shared_ptr<chisel::ColorImage<ColorData>> lastColorImage;
+
     chisel::PointCloudPtr lastPointCloud;
     chisel::ProjectionIntegrator projectionIntegrator;
     std::string baseTransform;
@@ -238,8 +233,12 @@ class ChiselServer
     ros::ServiceServer pauseServer;
     ros::ServiceServer saveMeshServer;
     ros::ServiceServer getAllChunksServer;
-    RosCameraTopic depthCamera;
-    RosCameraTopic colorCamera;
+
+    std::vector<RosCameraTopic> depthCamera;
+    std::vector<RosCameraTopic> colorCamera;
+    std::vector<std::shared_ptr<chisel::DepthImage<DepthData>>> lastDepthImage;
+    std::vector<std::shared_ptr<chisel::ColorImage<ColorData>>> lastColorImage;
+
     RosPointCloudTopic pointcloudTopic;
     bool useColor;
     bool hasNewData;
@@ -247,8 +246,6 @@ class ChiselServer
     float farPlaneDist;
     bool isPaused;
     FusionMode mode;
-
-    message_filters::Subscriber<nav_msgs::Odometry> *sub_odom;
 };
 typedef std::shared_ptr<ChiselServer> ChiselServerPtr;
 typedef std::shared_ptr<const ChiselServer> ChiselServerConstPtr;

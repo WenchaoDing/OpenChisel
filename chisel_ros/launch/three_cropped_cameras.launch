@@ -1,7 +1,6 @@
 <launch>
     <machine name="local" address="localhost" default="true"/>
 
-
     <!-- node name="Chisel" pkg="chisel_ros" type="ChiselNode" output="screen" launch-prefix="taskset -c 0,1" -->
     <node name="Chisel" pkg="chisel_ros" type="ChiselNode" output="screen" >
         <param name="chunk_size_x" value="8"/>  <!-- 8 -->
@@ -25,7 +24,19 @@
         <remap from="/color_image" to="/motion_stereo_middle/rgb/image_raw"/>
         <remap from="/color_camera_info" to="/motion_stereo_middle/rgb/image_info"/>
 
-        <param name="three_camera_mode" value="false"/>
+        <param name="three_camera_mode" value="true"/>
+
+        <remap from="/left_odom_topic" to="/motion_stereo_left/odometry"/>
+        <remap from="/left_depth_image" to="/motion_stereo_left/depth/image_raw"/>
+        <remap from="/left_depth_camera_info" to="/motion_stereo_left/depth/image_info"/>
+        <remap from="/left_color_image" to="/motion_stereo_left/rgb/image_raw"/>
+        <remap from="/left_color_camera_info" to="/motion_stereo_left/rgb/image_info"/>
+
+        <remap from="/right_odom_topic" to="/motion_stereo_right/odometry"/>
+        <remap from="/right_depth_image" to="/motion_stereo_right/depth/image_raw"/>
+        <remap from="/right_depth_camera_info" to="/motion_stereo_right/depth/image_info"/>
+        <remap from="/right_color_image" to="/motion_stereo_right/rgb/image_raw"/>
+        <remap from="/right_color_camera_info" to="/motion_stereo_right/rgb/image_info"/>
 
     </node>
 </launch>
