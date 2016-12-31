@@ -11,10 +11,10 @@
         <param name="use_voxel_carving" value="true"/>
         <param name="use_color" value="true"/>
         <param name="carving_dist_m" value="0.30"/>
-        <param name="voxel_resolution_m" value="0.06"/>  <!-- 0.1 -->
-        <param name="far_plane_dist" value="8.0"/>
+        <param name="voxel_resolution_m" value="0.1"/>  <!-- 0.1 for demo, 0.2 for bbgf -->
+        <param name="far_plane_dist" value="5.0"/>
         <param name="near_plane_dist" value="0.2"/>
-        <param name="base_transform" value="/base"/>
+        <param name="base_transform" value="/world"/>
         <param name="transform_name" value="/ref_frame"/>
         <param name="fusion_mode" value="DepthImage"/>
 
