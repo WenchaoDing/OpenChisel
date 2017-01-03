@@ -275,7 +275,7 @@ void ChiselServer::DepthImageCallback(sensor_msgs::ImageConstPtr depthImage, int
     hasNewData = true;
     if (!IsPaused() && HasNewData())
     {
-        ROS_INFO("Got data.");
+        //ROS_INFO("Got data.");
         auto start = std::chrono::system_clock::now();
         switch (GetMode())
         {
@@ -287,7 +287,7 @@ void ChiselServer::DepthImageCallback(sensor_msgs::ImageConstPtr depthImage, int
             break;
         }
         std::chrono::duration<double> elapsed = std::chrono::system_clock::now() - start;
-        ROS_INFO("CHISEL: Done with scan, %f ms", elapsed.count() * 1000);
+        //ROS_INFO("CHISEL: Done with scan, %f ms", elapsed.count() * 1000);
 
         PublishChunkBoxes();
         if (chiselMap->GetMeshesToUpdate().size() == 0)
@@ -295,7 +295,7 @@ void ChiselServer::DepthImageCallback(sensor_msgs::ImageConstPtr depthImage, int
             auto start = std::chrono::system_clock::now();
             PublishMeshes();
             std::chrono::duration<double> elapsed = std::chrono::system_clock::now() - start;
-            ROS_INFO("CHISEL: Done with publish, %f ms", elapsed.count() * 1000);
+            //ROS_INFO("CHISEL: Done with publish, %f ms", elapsed.count() * 1000);
         }
         puts("");
     }
@@ -341,7 +341,7 @@ void ChiselServer::SubscribePointCloud(const std::string &topic)
 
 void ChiselServer::PointCloudCallback(sensor_msgs::PointCloud2ConstPtr pointcloud)
 {
-    ROS_INFO("PointCloudCallback");
+    //ROS_INFO("PointCloudCallback");
     if (IsPaused())
         return;
     if (!lastPointCloud.get())
@@ -368,7 +368,7 @@ void ChiselServer::IntegrateLastDepthImage(int i)
 {
     if (!IsPaused() && depthCamera[i].gotInfo && depthCamera[i].gotPose && lastDepthImage[i].get())
     {
-        ROS_ERROR("CHISEL: Integrating depth scan %d",i);
+        //ROS_ERROR("CHISEL: Integrating depth scan %d",i);
         auto start = std::chrono::system_clock::now();
         if (useColor)
         {
@@ -379,15 +379,15 @@ void ChiselServer::IntegrateLastDepthImage(int i)
             chiselMap->IntegrateDepthScan<DepthData>(projectionIntegrator, lastDepthImage[i], depthCamera[i].lastPose, depthCamera[i].cameraModel);
         }
         std::chrono::duration<double> elapsed = std::chrono::system_clock::now() - start;
-        ROS_INFO("CHISEL: Done with scan, %f ms", elapsed.count() * 1000);
+        //ROS_INFO("CHISEL: Done with scan, %f ms", elapsed.count() * 1000);
         PublishLatestChunkBoxes();
 
         start = std::chrono::system_clock::now();
-        ROS_INFO("CHISEL: Updating meshes");
+        //ROS_INFO("CHISEL: Updating meshes");
         chiselMap->UpdateMeshes();
 
         elapsed = std::chrono::system_clock::now() - start;
-        ROS_INFO("CHISEL: Done with mesh, %f ms", elapsed.count() * 1000);
+        //ROS_INFO("CHISEL: Done with mesh, %f ms", elapsed.count() * 1000);
         hasNewData = false;
     }
 }
@@ -396,7 +396,7 @@ void ChiselServer::IntegrateLastPointCloud()
 {
     if (!IsPaused() && pointcloudTopic.gotPose && lastPointCloud.get())
     {
-        ROS_INFO("Integrating point cloud");
+        //ROS_INFO("Integrating point cloud");
         chiselMap->IntegratePointCloud(projectionIntegrator, *lastPointCloud, pointcloudTopic.lastPose, 0.1f, farPlaneDist);
         PublishLatestChunkBoxes();
         chiselMap->UpdateMeshes();
@@ -522,7 +522,7 @@ void ChiselServer::FillMarkerTopicWithMeshes(visualization_msgs::Marker *marker,
 
     if (meshMap.size() == 0)
     {
-        ROS_INFO("No Mesh");
+        //ROS_INFO("No Mesh");
         return;
     }
 
