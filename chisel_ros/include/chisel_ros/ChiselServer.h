@@ -119,6 +119,7 @@ class ChiselServer
 
     void SetupProjectionIntegrator(chisel::TruncatorPtr truncator, uint16_t weight, bool useCarving, float carvingDist);
     void SetupMeshPublisher(const std::string &meshTopic);
+    void SetupGridPublisher(const std::string &gridTopic);
     void SetupChunkBoxPublisher(const std::string &boxTopic);
 
     void PublishMeshes();
@@ -225,8 +226,10 @@ class ChiselServer
     chisel::ProjectionIntegrator projectionIntegrator;
     std::string baseTransform;
     std::string meshTopic;
+    std::string gridTopic;
     std::string chunkBoxTopic;
     ros::Publisher meshPublisher;
+    ros::Publisher gridPublisher;
     ros::Publisher chunkBoxPublisher;
     ros::Publisher latestChunkPublisher;
     ros::ServiceServer resetServer;

@@ -58,6 +58,12 @@ void ChiselServer::SetupMeshPublisher(const std::string &topic)
     meshPublisher = nh.advertise<visualization_msgs::Marker>(meshTopic, 1);
 }
 
+void ChiselServer::SetupGridPublisher(const std::string &topic)
+{
+    gridTopic = topic;
+    gridPublisher = nh.advertise<visualization_msgs::Marker>(gridTopic, 1);
+}
+
 void ChiselServer::PublishMeshes()
 {
     visualization_msgs::Marker marker;
@@ -67,7 +73,7 @@ void ChiselServer::PublishMeshes()
     if (!marker2.points.empty())
     {
         meshPublisher.publish(marker);
-        meshPublisher.publish(marker2);
+        gridPublisher.publish(marker2);
     }
 }
 

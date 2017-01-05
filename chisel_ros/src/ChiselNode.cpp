@@ -51,6 +51,7 @@ int main(int argc, char **argv)
     std::string colorImageTransform;
     std::string baseTransform;
     std::string meshTopic;
+    std::string gridTopic;
     std::string chunkBoxTopic;
     double nearPlaneDist;
     double farPlaneDist;
@@ -84,6 +85,7 @@ int main(int argc, char **argv)
     nh.param("color_image_info_topic", colorImageInfoTopic, std::string("/color_camera_info"));
     nh.param("base_transform", baseTransform, std::string("/camera_link"));
     nh.param("mesh_topic", meshTopic, std::string("full_mesh"));
+    nh.param("grid_topic", gridTopic, std::string("full_grid"));
     nh.param("chunk_box_topic", chunkBoxTopic, std::string("chunk_boxes"));
     nh.param("fusion_mode", modeString, std::string("DepthImage"));
     nh.param("odom_topic", odomTopic, std::string("/odom_topic"));
@@ -163,6 +165,7 @@ int main(int argc, char **argv)
 
     server->SetBaseTransform(baseTransform);
     server->SetupMeshPublisher(meshTopic);
+    server->SetupGridPublisher(gridTopic);
     server->SetupChunkBoxPublisher(chunkBoxTopic);
     ROS_INFO("Beginning to loop.");
 
