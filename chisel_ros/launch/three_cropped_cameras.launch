@@ -10,8 +10,8 @@
         <param name="integration_weight" value="1.0"/>
         <param name="use_voxel_carving" value="true"/>
         <param name="use_color" value="true"/>
-        <param name="carving_dist_m" value="0.30"/>
-        <param name="voxel_resolution_m" value="0.1"/>  <!-- 0.1 for demo, 0.2 for bbgf -->
+        <param name="carving_dist_m" value="0.10"/>
+        <param name="voxel_resolution_m" value="0.2"/>  <!-- 0.1 for demo, 0.2 for bbgf -->
         <param name="far_plane_dist" value="3.0"/>
         <param name="near_plane_dist" value="0.1"/>
         <param name="base_transform" value="/world"/>
@@ -24,6 +24,7 @@
         <remap from="/color_image" to="/motion_stereo_middle/rgb/image_raw"/>
         <remap from="/color_camera_info" to="/motion_stereo_middle/rgb/image_info"/>
 
+        <param name="calc_mesh" value="false"/>
         <param name="three_camera_mode" value="true"/>
 
         <remap from="/left_odom_topic" to="/motion_stereo_left/odometry"/>

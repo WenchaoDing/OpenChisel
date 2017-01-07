@@ -94,7 +94,7 @@ class ChiselServer
     };
 
     ChiselServer();
-    ChiselServer(const ros::NodeHandle &nodeHanlde, int chunkSizeX, int chunkSizeY, int chunkSizeZ, float resolution, bool color, FusionMode fusionMode);
+    ChiselServer(const ros::NodeHandle &nodeHanlde, int chunkSizeX, int chunkSizeY, int chunkSizeZ, float resolution, bool color, FusionMode fusionMode, bool _calc_mesh);
     virtual ~ChiselServer();
 
     void AdvertiseServices();
@@ -249,6 +249,7 @@ class ChiselServer
     float farPlaneDist;
     bool isPaused;
     FusionMode mode;
+    bool calc_mesh;
 };
 typedef std::shared_ptr<ChiselServer> ChiselServerPtr;
 typedef std::shared_ptr<const ChiselServer> ChiselServerConstPtr;

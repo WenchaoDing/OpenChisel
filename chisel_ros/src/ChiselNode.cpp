@@ -61,6 +61,7 @@ int main(int argc, char **argv)
     std::string odomTopic,transform_name;
 
     bool three_camera_mode;
+    bool calc_mesh;
     std::string left_odom_topic, left_depth_image, left_depth_camera_info, left_color_image, left_color_camera_info;
     std::string right_odom_topic, right_depth_image, right_depth_camera_info, right_color_image, right_color_camera_info;
 
@@ -102,6 +103,7 @@ int main(int argc, char **argv)
     odomTopic_vec.push_back(odomTopic);
 
     nh.param("three_camera_mode", three_camera_mode, false);
+    nh.param("calc_mesh", calc_mesh, false);
     if (three_camera_mode)
     {
         left_odom_topic = "/left_odom_topic";
@@ -147,7 +149,7 @@ int main(int argc, char **argv)
 
     ROS_INFO("Subscribing.");
 
-    chisel_ros::ChiselServerPtr server(new chisel_ros::ChiselServer(nh, chunkSizeX, chunkSizeY, chunkSizeZ, voxelResolution, useColor, mode));
+    chisel_ros::ChiselServerPtr server(new chisel_ros::ChiselServer(nh, chunkSizeX, chunkSizeY, chunkSizeZ, voxelResolution, useColor, mode, calc_mesh));
 
     //chisel::TruncatorPtr truncator(new chisel::QuadraticTruncator(truncationDistScale));
     chisel::TruncatorPtr truncator(new chisel::InverseTruncator(truncationDistScale));

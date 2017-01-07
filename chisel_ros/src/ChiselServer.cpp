@@ -36,8 +36,14 @@ namespace chisel_ros
 {
 
 ChiselServer::ChiselServer()
-    : useColor(false), hasNewData(false), nearPlaneDist(0.05), farPlaneDist(5), isPaused(false), mode(FusionMode::DepthImage)
+    : useColor(false), hasNewData(false), nearPlaneDist(0.05), farPlaneDist(5), isPaused(false), mode(FusionMode::DepthImage), calc_mesh(false)
 {
+}
+
+ChiselServer::ChiselServer(const ros::NodeHandle &nodeHanlde, int chunkSizeX, int chunkSizeY, int chunkSizeZ, float resolution, bool color, FusionMode fusionMode, bool _calc_mesh)
+    : nh(nodeHanlde), useColor(color), hasNewData(false), isPaused(false), mode(fusionMode), calc_mesh(_calc_mesh)
+{
+    chiselMap.reset(new chisel::Chisel(Eigen::Vector3i(chunkSizeX, chunkSizeY, chunkSizeZ), resolution, color));
 }
 
 ChiselServer::~ChiselServer()
@@ -72,7 +78,7 @@ void ChiselServer::PublishMeshes()
 
     if (!marker2.points.empty())
     {
-        meshPublisher.publish(marker);
+        if (calc_mesh) meshPublisher.publish(marker);
         gridPublisher.publish(marker2);
     }
 }
@@ -117,12 +123,6 @@ visualization_msgs::Marker ChiselServer::CreateFrustumMarker(const chisel::Frust
     }
 
     return marker;
-}
-
-ChiselServer::ChiselServer(const ros::NodeHandle &nodeHanlde, int chunkSizeX, int chunkSizeY, int chunkSizeZ, float resolution, bool color, FusionMode fusionMode)
-    : nh(nodeHanlde), useColor(color), hasNewData(false), isPaused(false), mode(fusionMode)
-{
-    chiselMap.reset(new chisel::Chisel(Eigen::Vector3i(chunkSizeX, chunkSizeY, chunkSizeZ), resolution, color));
 }
 
 bool ChiselServer::TogglePaused(chisel_msgs::PauseService::Request &request, chisel_msgs::PauseService::Response &response)
@@ -513,17 +513,21 @@ void ChiselServer::FillMarkerTopicWithMeshes(visualization_msgs::Marker *marker,
     marker2->color.b = 0.0;
     marker2->color.a = 1.0;
 
-    marker->header.stamp = ros::Time::now();
-    marker->header.frame_id = baseTransform;
-    marker->ns = "mesh";
-    marker->scale.x = 1;
-    marker->scale.y = 1;
-    marker->scale.z = 1;
-    marker->pose.orientation.x = 0;
-    marker->pose.orientation.y = 0;
-    marker->pose.orientation.z = 0;
-    marker->pose.orientation.w = 1;
-    marker->type = visualization_msgs::Marker::TRIANGLE_LIST;
+    if (calc_mesh)
+    {
+        marker->header.stamp = ros::Time::now();
+        marker->header.frame_id = baseTransform;
+        marker->ns = "mesh";
+        marker->scale.x = 1;
+        marker->scale.y = 1;
+        marker->scale.z = 1;
+        marker->pose.orientation.x = 0;
+        marker->pose.orientation.y = 0;
+        marker->pose.orientation.z = 0;
+        marker->pose.orientation.w = 1;
+        marker->type = visualization_msgs::Marker::TRIANGLE_LIST;
+    }
+
     const chisel::MeshMap &meshMap = chiselMap->GetChunkManager().GetAllMeshes();
 
     if (meshMap.size() == 0)
@@ -537,7 +541,7 @@ void ChiselServer::FillMarkerTopicWithMeshes(visualization_msgs::Marker *marker,
     chisel::Vec3 lightDir1(-0.5f, 0.2f, 0.2f);
     lightDir.normalize();
     const chisel::Vec3 ambient(0.2f, 0.2f, 0.2f);
-    //int idx = 0;
+
     for (const std::pair<chisel::ChunkID, chisel::MeshPtr> &meshes : meshMap)
     {
         const chisel::MeshPtr &mesh = meshes.second;
@@ -550,6 +554,9 @@ void ChiselServer::FillMarkerTopicWithMeshes(visualization_msgs::Marker *marker,
             pt.z = vec[2];
             marker2->points.push_back(pt);
         }
+
+        if (!calc_mesh) continue;
+
         for (size_t i = 0; i < mesh->vertices.size(); i++)
         {
             const chisel::Vec3 &vec = mesh->vertices[i];
@@ -592,8 +599,6 @@ void ChiselServer::FillMarkerTopicWithMeshes(visualization_msgs::Marker *marker,
                     marker->colors.push_back(color);
                 }
             }
-            //marker->indicies.push_back(idx);
-            //idx++;
         }
     }
 }
