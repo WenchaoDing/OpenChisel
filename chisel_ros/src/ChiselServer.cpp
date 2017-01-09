@@ -303,6 +303,8 @@ void ChiselServer::DepthImageCallback(sensor_msgs::ImageConstPtr depthImage, int
             std::chrono::duration<double> elapsed = std::chrono::system_clock::now() - start;
             //ROS_INFO("CHISEL: Done with publish, %f ms", elapsed.count() * 1000);
         }
+        else
+            PublishMeshes();
         puts("");
     }
 }

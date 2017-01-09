@@ -12,7 +12,7 @@
         <param name="use_color" value="true"/>
         <param name="carving_dist_m" value="0.10"/>
         <param name="voxel_resolution_m" value="0.2"/>  <!-- 0.1 for demo, 0.2 for bbgf -->
-        <param name="far_plane_dist" value="3.0"/>
+        <param name="far_plane_dist" value="4.0"/>
         <param name="near_plane_dist" value="0.1"/>
         <param name="base_transform" value="/world"/>
         <param name="transform_name" value="/ref_frame"/>
