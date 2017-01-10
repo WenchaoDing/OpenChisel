@@ -285,16 +285,19 @@ void ChiselServer::DepthImageCallback(sensor_msgs::ImageConstPtr depthImage, int
         auto start = std::chrono::system_clock::now();
         switch (GetMode())
         {
-        case chisel_ros::ChiselServer::FusionMode::DepthImage:
-            IntegrateLastDepthImage(i);
-            break;
-        case chisel_ros::ChiselServer::FusionMode::PointCloud:
-            IntegrateLastPointCloud();
-            break;
+            case chisel_ros::ChiselServer::FusionMode::DepthImage:
+                mtx.lock();
+                IntegrateLastDepthImage(i);
+                mtx.unlock();
+                break;
+            case chisel_ros::ChiselServer::FusionMode::PointCloud:
+                IntegrateLastPointCloud();
+                break;
         }
         std::chrono::duration<double> elapsed = std::chrono::system_clock::now() - start;
-        //ROS_INFO("CHISEL: Done with scan, %f ms", elapsed.count() * 1000);
+        ROS_INFO("CHISEL: Done with scan, %f ms", elapsed.count() * 1000);
 
+/*
         PublishChunkBoxes();
         if (chiselMap->GetMeshesToUpdate().size() == 0)
         {
@@ -305,6 +308,7 @@ void ChiselServer::DepthImageCallback(sensor_msgs::ImageConstPtr depthImage, int
         }
         else
             PublishMeshes();
+*/
         puts("");
     }
 }

@@ -30,6 +30,22 @@ namespace backward
 #include <chisel_ros/ChiselServer.h>
 #include <open_chisel/truncation/QuadraticTruncator.h>
 #include <open_chisel/truncation/InverseTruncator.h>
+#include <boost/thread.hpp>
+
+chisel_ros::ChiselServerPtr server;
+
+void pub_map()
+{
+    ros::Rate loop_rate(10);
+
+    while (ros::ok())
+    {
+        loop_rate.sleep();
+        server->mtx.lock();
+        server->PublishMeshes();
+        server->mtx.unlock();
+    }
+}
 
 int main(int argc, char **argv)
 {
@@ -149,7 +165,7 @@ int main(int argc, char **argv)
 
     ROS_INFO("Subscribing.");
 
-    chisel_ros::ChiselServerPtr server(new chisel_ros::ChiselServer(nh, chunkSizeX, chunkSizeY, chunkSizeZ, voxelResolution, useColor, mode, calc_mesh));
+    server = chisel_ros::ChiselServerPtr(new chisel_ros::ChiselServer(nh, chunkSizeX, chunkSizeY, chunkSizeZ, voxelResolution, useColor, mode, calc_mesh));
 
     //chisel::TruncatorPtr truncator(new chisel::QuadraticTruncator(truncationDistScale));
     chisel::TruncatorPtr truncator(new chisel::InverseTruncator(truncationDistScale));
@@ -170,6 +186,8 @@ int main(int argc, char **argv)
     server->SetupGridPublisher(gridTopic);
     server->SetupChunkBoxPublisher(chunkBoxTopic);
     ROS_INFO("Beginning to loop.");
+
+    boost::thread pub_map_thread(pub_map);
 
     ros::spin();
     //ros::Rate loop_rate(100);
