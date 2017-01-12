@@ -138,10 +138,11 @@ class ProjectionIntegrator
 
             float truncation = truncator->GetTruncationDistance(depth);
             float surfaceDist = depth - voxelDist;
-            if (depth > 100.0f)
+
+            if ( depth > 1500.0f)   // first: is DEP_INF_1, but not DEP_INF. (TODO: use a fix flag or ...)
                 continue;
 
-            if (std::abs(surfaceDist) < truncation + resolutionDiagonal)
+            if (depth <=100.0f && std::abs(surfaceDist) < truncation + resolutionDiagonal)
             {
                 Vec3 voxelCenterInColorCamera = colorCameraPose.linear().transpose() * (voxelCenter - colorCameraPose.translation());
                 Vec3 colorCameraPos = colorCamera.ProjectPoint(voxelCenterInColorCamera);
