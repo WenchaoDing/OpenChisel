@@ -42,6 +42,7 @@ class InverseTruncator : public Truncator
     float GetTruncationDistance(float reading) const
     {
         if ( fabs(reading - 1000.0f) < 1e-3) return 0.0f;  // is DEP_INF from motion_stereo. TODO: change to a fix flag (some constant value or ...)
+		//return 0.15f;  // 0.05f
         float inv_reading = 1.0 / reading;
         return (DEP_SAMPLE / (inv_reading * inv_reading)) * scalingFactor;
     }

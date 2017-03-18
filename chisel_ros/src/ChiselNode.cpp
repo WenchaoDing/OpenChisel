@@ -32,19 +32,28 @@ namespace backward
 #include <open_chisel/truncation/InverseTruncator.h>
 #include <boost/thread.hpp>
 
+//#define ROSCONSOLE_MIN_SEVERITY ROSCONSOLE_SEVERITY_WARN
+
 chisel_ros::ChiselServerPtr server;
 
 void pub_map()
 {
     ros::Rate loop_rate(10);
 
+	FILE *file = fopen("/home/timer/chisel_render.txt","w");
+
     while (ros::ok())
     {
         loop_rate.sleep();
+ros::Time t1 = ros::Time::now();
         server->mtx.lock();
-        server->PublishMeshes();
+        server->PublishMeshes(ros::Time::now());
         server->mtx.unlock();
+ros::Time t2 = ros::Time::now();
+fprintf(file,"%lf\n",(t2-t1).toSec()*1000.0);
+fflush(file);
     }
+	fclose(file);
 }
 
 int main(int argc, char **argv)

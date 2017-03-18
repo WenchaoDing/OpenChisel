@@ -2,17 +2,17 @@
     <machine name="local" address="localhost" default="true"/>
 
     <!-- node name="Chisel" pkg="chisel_ros" type="ChiselNode" output="screen" launch-prefix="taskset -c 0,1" -->
-    <node name="Chisel" pkg="chisel_ros" type="ChiselNode" output="log" >
+    <node name="Chisel" pkg="chisel_ros" type="ChiselNode" output="screen" >
         <param name="chunk_size_x" value="8"/>  <!-- 8 -->
         <param name="chunk_size_y" value="8"/>
         <param name="chunk_size_z" value="8"/>
-        <param name="truncation_scale" value="2.0"/>  <!-- 2 -->
+        <param name="truncation_scale" value="1.5"/>  <!-- 2 -->
         <param name="integration_weight" value="1.0"/>
         <param name="use_voxel_carving" value="true"/>
         <param name="use_color" value="true"/>
-        <param name="carving_dist_m" value="0.10"/>
-        <param name="voxel_resolution_m" value="0.2"/>  <!-- 0.1 for demo, 0.2 for bbgf -->
-        <param name="far_plane_dist" value="5.0"/>
+        <param name="carving_dist_m" value="0.01"/>  <!-- 0.10 -->
+        <param name="voxel_resolution_m" value="0.15"/>  <!-- 0.1 for demo, 0.2 for bbgf 0.06 -->
+        <param name="far_plane_dist" value="4.0"/>
         <param name="near_plane_dist" value="0.1"/>
         <param name="base_transform" value="/world"/>
         <param name="transform_name" value="/ref_frame"/>
@@ -24,7 +24,7 @@
         <remap from="/color_image" to="/motion_stereo_middle/rgb/image_raw"/>
         <remap from="/color_camera_info" to="/motion_stereo_middle/rgb/image_info"/>
 
-        <param name="calc_mesh" value="false"/>
+        <param name="calc_mesh" value="true"/>
         <param name="three_camera_mode" value="true"/>
 
         <remap from="/left_odom_topic" to="/motion_stereo_left/odometry"/>

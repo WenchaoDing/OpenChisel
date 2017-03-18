@@ -122,7 +122,7 @@ class ChiselServer
     void SetupGridPublisher(const std::string &gridTopic);
     void SetupChunkBoxPublisher(const std::string &boxTopic);
 
-    void PublishMeshes();
+    void PublishMeshes(const ros::Time &stamp);
     void PublishChunkBoxes();
     void PublishLatestChunkBoxes();
 
@@ -153,7 +153,7 @@ class ChiselServer
 
     void IntegrateLastDepthImage(int i);
     void IntegrateLastPointCloud();
-    void FillMarkerTopicWithMeshes(visualization_msgs::Marker *marker, visualization_msgs::Marker *marker2);
+    void FillMarkerTopicWithMeshes(visualization_msgs::Marker *marker, visualization_msgs::Marker *marker2, const ros::Time &stamp);
     inline void SetBaseTransform(const std::string &frameName)
     {
         baseTransform = frameName;

@@ -51,7 +51,7 @@ void Chisel::UpdateMeshes()
 {
     printf("number of chunk to update: %lu\n", meshesToUpdate.size());
     static int cnt = 0;
-    if (cnt++ % 10 == 0)
+//    if (cnt++ % 10 == 0)
     {
         chunkManager.RecomputeMeshes(meshesToUpdate);
         meshesToUpdate.clear();
