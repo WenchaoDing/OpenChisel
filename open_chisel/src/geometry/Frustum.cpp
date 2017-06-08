@@ -218,5 +218,67 @@ namespace chisel
         lines[23] = corners[4];
     }
 
+    void Frustum::SetFromParams_Sphere(const Transform& view, float farDist)
+    {
+        Mat3x3 r = view.linear();
+        Vec3 p = view.translation();
+
+        Vec3 farTopLeft = Vec3(-farDist, -farDist, farDist);
+        Vec3 farTopRight = Vec3(-farDist, farDist, farDist);
+        Vec3 farBotLeft = Vec3(-farDist, -farDist, -farDist);
+        Vec3 farBotRight = Vec3(-farDist, farDist, -farDist);
+
+        Vec3 nearBotRight = Vec3(farDist, farDist, -farDist);
+        Vec3 nearTopLeft = Vec3(farDist, -farDist, farDist);
+        Vec3 nearTopRight = Vec3(farDist, farDist, farDist);
+        Vec3 nearBotLeft = Vec3(farDist, -farDist, -farDist);
+
+        near = Plane(nearBotLeft, nearTopLeft, nearBotRight);
+        far = Plane(farTopRight, farTopLeft, farBotRight);
+        left = Plane(farTopLeft, nearTopLeft, farBotLeft);
+        right = Plane(nearTopRight, farTopRight, nearBotRight);
+        top = Plane(nearTopLeft, farTopLeft, nearTopRight);
+        bottom = Plane(nearBotRight, farBotLeft, nearBotLeft);
+
+        corners[0] = farTopLeft.cast<float>();
+        corners[1] = farTopRight.cast<float>();
+        corners[2] = farBotLeft.cast<float>();
+        corners[3] = farBotRight.cast<float>();
+        corners[4] = nearBotRight.cast<float>();
+        corners[5] = nearTopLeft.cast<float>();
+        corners[6] = nearTopRight.cast<float>();
+        corners[7] = nearBotLeft.cast<float>();
+
+        // Far face lines.
+        lines[0] = corners[0];
+        lines[1] = corners[1];
+        lines[2] = corners[3];
+        lines[3] = corners[2];
+        lines[4] = corners[1];
+        lines[5] = corners[3];
+        lines[6] = corners[2];
+        lines[7] = corners[0];
+
+        // Near face lines.
+        lines[8] = corners[4];
+        lines[9] = corners[7];
+        lines[10] = corners[6];
+        lines[11] = corners[5];
+        lines[12] = corners[5];
+        lines[13] = corners[7];
+        lines[14] = corners[6];
+        lines[15] = corners[4];
+
+        // Connecting lines.
+        lines[16] = corners[0];
+        lines[17] = corners[5];
+        lines[18] = corners[1];
+        lines[19] = corners[6];
+        lines[20] = corners[2];
+        lines[21] = corners[7];
+        lines[22] = corners[3];
+        lines[23] = corners[4];
+    }    
+
 
 } // namespace chisel 

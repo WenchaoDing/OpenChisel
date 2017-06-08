@@ -1,0 +1,7 @@
+{
+    "files.associations": {
+        "mutex": "cpp",
+        "cmath": "cpp",
+        "complex": "cpp"
+    }
+}

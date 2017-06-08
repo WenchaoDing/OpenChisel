@@ -27,6 +27,7 @@
 #include <open_chisel/geometry/Frustum.h>
 #include <open_chisel/geometry/AABB.h>
 #include <open_chisel/camera/PinholeCamera.h>
+#include <open_chisel/camera/FisheyeCamera.h>
 #include <open_chisel/camera/DepthImage.h>
 #include <open_chisel/camera/ColorImage.h>
 #include <open_chisel/Chunk.h>
@@ -99,7 +100,8 @@ class ProjectionIntegrator
     }
 
     template <class DataType, class ColorType>
-    bool IntegrateColor(const std::shared_ptr<const DepthImage<DataType>> &depthImage, const PinholeCamera &depthCamera, const Transform &depthCameraPose, const std::shared_ptr<const ColorImage<ColorType>> &colorImage, const PinholeCamera &colorCamera, const Transform &colorCameraPose, Chunk *chunk) const
+    bool IntegrateColor(const std::shared_ptr<const DepthImage<DataType>> &depthImage, const FisheyeCamera &camera, const Transform &depthCameraPose,
+                        const std::shared_ptr<const ColorImage<ColorType>> &colorImage, const Transform &colorCameraPose, Chunk *chunk) const
     {
         assert(chunk != nullptr);
 
@@ -120,9 +122,9 @@ class ProjectionIntegrator
             Color<ColorType> color;
             Vec3 voxelCenter = centroids[i] + origin;
             Vec3 voxelCenterInCamera = depthCameraPose.linear().transpose() * (voxelCenter - depthCameraPose.translation());
-            Vec3 cameraPos = depthCamera.ProjectPoint(voxelCenterInCamera);
+            Vec3 cameraPos = camera.ProjectPoint(voxelCenterInCamera);
 
-            if (!depthCamera.IsPointOnImage(cameraPos) || voxelCenterInCamera.z() < 0)
+            if (!camera.IsPointOnImage(cameraPos) || voxelCenterInCamera.z() < 0)
             {
                 continue;
             }
@@ -145,8 +147,8 @@ class ProjectionIntegrator
             if (depth <=100.0f && std::abs(surfaceDist) < truncation + resolutionDiagonal)
             {
                 Vec3 voxelCenterInColorCamera = colorCameraPose.linear().transpose() * (voxelCenter - colorCameraPose.translation());
-                Vec3 colorCameraPos = colorCamera.ProjectPoint(voxelCenterInColorCamera);
-                if (colorCamera.IsPointOnImage(colorCameraPos))
+                Vec3 colorCameraPos = camera.ProjectPoint(voxelCenterInColorCamera);
+                if (camera.IsPointOnImage(colorCameraPos))
                 {
                     ColorVoxel &colorVoxel = chunk->GetColorVoxelMutable(i);
 
@@ -167,7 +169,8 @@ class ProjectionIntegrator
             else if (enableVoxelCarving && surfaceDist > truncation + carvingDist)
             {
                 DistVoxel &voxel = chunk->GetDistVoxelMutable(i);
-                if (voxel.GetWeight() > 0 && voxel.GetSDF() < 1e-5)
+                //if (voxel.GetWeight() > 0 && voxel.GetSDF() < 1e-5)
+                if (voxel.GetWeight() > 0 && voxel.GetSDF() > 1e-5)
                 {
                     voxel.Carve();
                     updated = true;

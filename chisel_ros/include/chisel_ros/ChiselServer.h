@@ -44,6 +44,7 @@
 #include <message_filters/synchronizer.h>
 #include <message_filters/sync_policies/exact_time.h>
 #include <nav_msgs/Odometry.h>
+#include <open_chisel/camera/FisheyeCamera.h>
 
 namespace chisel_ros
 {
@@ -63,21 +64,17 @@ class ChiselServer
     struct RosCameraTopic
     {
         std::string imageTopic;
-        std::string infoTopic;
         std::string transform;
-        chisel::PinholeCamera cameraModel;
+        chisel::FisheyeCamera cameraModel;
         ros::Subscriber imageSubscriber;
-        ros::Subscriber infoSubscriber;
         ros::Publisher lastPosePublisher;
         ros::Publisher frustumPublisher;
         chisel::Transform lastPose;
         ros::Time lastImageTimestamp;
         bool gotPose;
-        bool gotInfo;
         bool gotImage;
 
         message_filters::Subscriber<sensor_msgs::Image> *sub_image;
-        message_filters::Subscriber<sensor_msgs::CameraInfo> *sub_info;
         message_filters::Subscriber<nav_msgs::Odometry> *sub_odom;
     };
 
@@ -94,7 +91,9 @@ class ChiselServer
     };
 
     ChiselServer();
-    ChiselServer(const ros::NodeHandle &nodeHanlde, int chunkSizeX, int chunkSizeY, int chunkSizeZ, float resolution, bool color, FusionMode fusionMode, bool _calc_mesh);
+    ChiselServer(const ros::NodeHandle &nodeHanlde, int chunkSizeX, int chunkSizeY, int chunkSizeZ,
+                 float resolution, bool color, FusionMode fusionMode, bool _calc_mesh,
+                 std::string camera_model_file, std::string mask_file);
     virtual ~ChiselServer();
 
     void AdvertiseServices();
@@ -127,25 +126,23 @@ class ChiselServer
     void PublishLatestChunkBoxes();
 
     void OdometryCallback(nav_msgs::OdometryConstPtr odom, int i);
-    void DepthCameraInfoCallback(sensor_msgs::CameraInfoConstPtr cameraInfo, int i);
     void DepthImageCallback(sensor_msgs::ImageConstPtr depthImage, int i);
-    void ColorCameraInfoCallback(sensor_msgs::CameraInfoConstPtr cameraInfo, int i);
     void ColorImageCallback(sensor_msgs::ImageConstPtr colorImage, int i);
 
-    void SubscribeAll(const std::vector<std::string> &depth_imageTopic, const std::vector<std::string> &depth_infoTopic,
-                      const std::vector<std::string> &color_imageTopic, const std::vector<std::string> &color_infoTopic,
+    void SubscribeAll(const std::vector<std::string> &depth_imageTopic,
+                      const std::vector<std::string> &color_imageTopic,
                       const std::string &transform, const std::vector<std::string> &odom_topic);
     void CallbackAll_0(
-        sensor_msgs::ImageConstPtr depth_image, sensor_msgs::CameraInfoConstPtr depth_info,
-        sensor_msgs::ImageConstPtr color_image, sensor_msgs::CameraInfoConstPtr color_info,
+        sensor_msgs::ImageConstPtr depth_image,
+        sensor_msgs::ImageConstPtr color_image,
         nav_msgs::OdometryConstPtr odom);
     void CallbackAll_1(
-        sensor_msgs::ImageConstPtr depth_image, sensor_msgs::CameraInfoConstPtr depth_info,
-        sensor_msgs::ImageConstPtr color_image, sensor_msgs::CameraInfoConstPtr color_info,
+        sensor_msgs::ImageConstPtr depth_image,
+        sensor_msgs::ImageConstPtr color_image,
         nav_msgs::OdometryConstPtr odom);
     void CallbackAll_2(
-        sensor_msgs::ImageConstPtr depth_image, sensor_msgs::CameraInfoConstPtr depth_info,
-        sensor_msgs::ImageConstPtr color_image, sensor_msgs::CameraInfoConstPtr color_info,
+        sensor_msgs::ImageConstPtr depth_image,
+        sensor_msgs::ImageConstPtr color_image,
         nav_msgs::OdometryConstPtr odom);
 
     void SubscribePointCloud(const std::string &topic);
@@ -179,6 +176,7 @@ class ChiselServer
     inline void SetFarPlaneDist(float dist)
     {
         farPlaneDist = dist;
+        cam.setFarPlane(dist);
     }
 
     bool Reset(chisel_msgs::ResetService::Request &request, chisel_msgs::ResetService::Response &response);
@@ -206,8 +204,6 @@ class ChiselServer
 
     void SetDepthImage(const sensor_msgs::ImageConstPtr &img, int);
     void SetColorImage(const sensor_msgs::ImageConstPtr &img, int);
-    void SetColorCameraInfo(const sensor_msgs::CameraInfoConstPtr &info, int);
-    void SetDepthCameraInfo(const sensor_msgs::CameraInfoConstPtr &info, int);
 
     boost::mutex mtx;
 
@@ -216,8 +212,8 @@ class ChiselServer
 
     ros::NodeHandle nh;
 
-    typedef message_filters::sync_policies::ExactTime<sensor_msgs::Image, sensor_msgs::CameraInfo,
-                                                      sensor_msgs::Image, sensor_msgs::CameraInfo,
+    typedef message_filters::sync_policies::ExactTime<sensor_msgs::Image,
+                                                      sensor_msgs::Image,
                                                       nav_msgs::Odometry> MySyncPolicy;
     std::vector< message_filters::Synchronizer<MySyncPolicy>* > sync;
 
@@ -239,8 +235,9 @@ class ChiselServer
     ros::ServiceServer saveMeshServer;
     ros::ServiceServer getAllChunksServer;
 
-    std::vector<RosCameraTopic> depthCamera;
-    std::vector<RosCameraTopic> colorCamera;
+    std::vector<RosCameraTopic> depthCamera, colorCamera;
+    chisel::FisheyeCamera cam;
+
     std::vector<std::shared_ptr<chisel::DepthImage<DepthData>>> lastDepthImage;
     std::vector<std::shared_ptr<chisel::ColorImage<ColorData>>> lastColorImage;
 

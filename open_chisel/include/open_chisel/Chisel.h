@@ -30,6 +30,7 @@
 #include <open_chisel/camera/DepthImage.h>
 #include <open_chisel/geometry/Frustum.h>
 #include <open_chisel/pointcloud/PointCloud.h>
+#include <open_chisel/camera/FisheyeCamera.h>
 
 namespace chisel
 {
@@ -56,68 +57,13 @@ class Chisel
 
     void IntegratePointCloud(const ProjectionIntegrator &integrator, const PointCloud &cloud, const Transform &extrinsic, float truncation, float maxDist);
 
-    template <class DataType>
-    void IntegrateDepthScan(const ProjectionIntegrator &integrator, const std::shared_ptr<const DepthImage<DataType>> &depthImage, const Transform &extrinsic, const PinholeCamera &camera)
-    {
-        printf("CHISEL: Integrating a scan\n");
-        Frustum frustum;
-        camera.SetupFrustum(extrinsic, &frustum);
-
-        ChunkIDList chunksIntersecting;
-        chunkManager.GetChunkIDsIntersecting(frustum, &chunksIntersecting);
-
-        std::mutex mutex;
-        ChunkIDList garbageChunks;
-        for (const ChunkID &chunkID : chunksIntersecting)
-        // parallel_for(chunksIntersecting.begin(), chunksIntersecting.end(), [&](const ChunkID& chunkID)
-        {
-            bool chunkNew = false;
-
-            mutex.lock();
-            if (!chunkManager.HasChunk(chunkID))
-            {
-                chunkNew = true;
-                chunkManager.CreateChunk(chunkID);
-            }
-
-            ChunkPtr chunk = chunkManager.GetChunk(chunkID);
-            mutex.unlock();
-
-            bool needsUpdate = integrator.Integrate(depthImage, camera, extrinsic, chunk.get());
-
-            mutex.lock();
-            if (needsUpdate)
-            {
-                for (int dx = -1; dx <= 1; dx++)
-                {
-                    for (int dy = -1; dy <= 1; dy++)
-                    {
-                        for (int dz = -1; dz <= 1; dz++)
-                        {
-                            meshesToUpdate[chunkID + ChunkID(dx, dy, dz)] = true;
-                        }
-                    }
-                }
-            }
-            else if (chunkNew)
-            {
-                garbageChunks.push_back(chunkID);
-            }
-            mutex.unlock();
-        }
-        //);
-        printf("CHISEL: Done with scan\n");
-        GarbageCollect(garbageChunks);
-        chunkManager.PrintMemoryStatistics();
-    }
-
     template <class DataType, class ColorType>
-    void IntegrateDepthScanColor(const ProjectionIntegrator &integrator, const std::shared_ptr<const DepthImage<DataType>> &depthImage, const Transform &depthExtrinsic, const PinholeCamera &depthCamera, const std::shared_ptr<const ColorImage<ColorType>> &colorImage, const Transform &colorExtrinsic, const PinholeCamera &colorCamera)
+    void IntegrateDepthScanColor(const ProjectionIntegrator &integrator, const std::shared_ptr<const DepthImage<DataType>> &depthImage, const Transform &depthExtrinsic, const std::shared_ptr<const ColorImage<ColorType>> &colorImage, const Transform &colorExtrinsic, const FisheyeCamera &camera)
     {
         printf("CHISEL: Integrating a color scan\n");
         auto wall_time = std::chrono::system_clock::now();
         Frustum frustum;
-        depthCamera.SetupFrustum(depthExtrinsic, &frustum);
+        camera.SetupFrustum(depthExtrinsic, &frustum);
 
         ChunkIDList chunksIntersecting;
         chunkManager.GetChunkIDsIntersecting(frustum, &chunksIntersecting);
@@ -157,7 +103,7 @@ class Chisel
             int s = i * blockSize;
             printf("thread: %d, s: %d, blockSize: %d\n", i, s, blockSize);
             threads.push_back(std::thread([s, n, blockSize, this, &m, &chunksIntersecting,
-                                           &depthImage, &depthCamera, &depthExtrinsic, &colorImage, &colorCamera, &colorExtrinsic, &integrator,
+                                           &depthImage, &camera, &depthExtrinsic, &colorImage, &colorExtrinsic, &integrator,
                                            &isNew, &isGarbage,
                                            &debug_v]()
                                           {
@@ -166,7 +112,7 @@ class Chisel
                                                   ChunkID chunkID = chunksIntersecting[k];
                                                   ChunkPtr chunk = this->chunkManager.GetChunk(chunkID);
 
-                                                  bool needsUpdate = integrator.IntegrateColor(depthImage, depthCamera, depthExtrinsic, colorImage, colorCamera, colorExtrinsic, chunk.get());
+                                                  bool needsUpdate = integrator.IntegrateColor(depthImage, camera, depthExtrinsic, colorImage, colorExtrinsic, chunk.get());
                                                   if (!needsUpdate && isNew[k])
                                                   {
                                                       isGarbage[k] = true;

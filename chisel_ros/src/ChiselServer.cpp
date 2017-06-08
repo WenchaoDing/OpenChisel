@@ -42,10 +42,15 @@ ChiselServer::ChiselServer()
 {
 }
 
-ChiselServer::ChiselServer(const ros::NodeHandle &nodeHanlde, int chunkSizeX, int chunkSizeY, int chunkSizeZ, float resolution, bool color, FusionMode fusionMode, bool _calc_mesh)
+ChiselServer::ChiselServer(const ros::NodeHandle &nodeHanlde, int chunkSizeX, int chunkSizeY, int chunkSizeZ,
+                           float resolution, bool color, FusionMode fusionMode, bool _calc_mesh,
+                           std::string camera_model_file, std::string mask_file)
     : nh(nodeHanlde), useColor(color), hasNewData(false), isPaused(false), mode(fusionMode), calc_mesh(_calc_mesh)
 {
     chiselMap.reset(new chisel::Chisel(Eigen::Vector3i(chunkSizeX, chunkSizeY, chunkSizeZ), resolution, color));
+    cam.loadCameraFile(camera_model_file);
+    cam.loadMask(mask_file);
+    ROS_INFO("cameraModel loaded: width = %d, height = %d", cam.width, cam.height);
 }
 
 ChiselServer::~ChiselServer()
@@ -140,8 +145,8 @@ bool ChiselServer::Reset(chisel_msgs::ResetService::Request &request, chisel_msg
 }
 
 void ChiselServer::SubscribeAll(
-                  const std::vector<std::string> &depth_imageTopic, const std::vector<std::string> &depth_infoTopic,
-                  const std::vector<std::string> &color_imageTopic, const std::vector<std::string> &color_infoTopic,
+                  const std::vector<std::string> &depth_imageTopic,
+                  const std::vector<std::string> &color_imageTopic,
                   const std::string &transform, const std::vector<std::string> &odom_topic)
 {
     depthCamera.resize(odom_topic.size());
@@ -155,72 +160,59 @@ void ChiselServer::SubscribeAll(
         printf("subscribe cam: %d\n",i);
 
         depthCamera[i].imageTopic = depth_imageTopic[i];
-        depthCamera[i].infoTopic = depth_infoTopic[i];
         depthCamera[i].transform = transform;
         depthCamera[i].sub_image = new message_filters::Subscriber<sensor_msgs::Image>(nh, depth_imageTopic[i], 1);
-        depthCamera[i].sub_info = new message_filters::Subscriber<sensor_msgs::CameraInfo>(nh, depth_infoTopic[i], 1);
 
         colorCamera[i].imageTopic = color_imageTopic[i];
-        colorCamera[i].infoTopic = color_infoTopic[i];
         colorCamera[i].transform = transform;
         colorCamera[i].sub_image = new message_filters::Subscriber<sensor_msgs::Image>(nh, color_imageTopic[i], 1);
-        colorCamera[i].sub_info = new message_filters::Subscriber<sensor_msgs::CameraInfo>(nh, color_infoTopic[i], 1);
 
         colorCamera[i].sub_odom = new message_filters::Subscriber<nav_msgs::Odometry>(nh,odom_topic[i],1);
 
         sync[i] = new message_filters::Synchronizer<MySyncPolicy>(MySyncPolicy(1000),
-                                                               *(depthCamera[i].sub_image), *(depthCamera[i].sub_info),
-                                                               *(colorCamera[i].sub_image), *(colorCamera[i].sub_info),
+                                                               *(depthCamera[i].sub_image),
+                                                               *(colorCamera[i].sub_image),
                                                                *(colorCamera[i].sub_odom));
 
         if (i==0)
-            sync[i]->registerCallback(boost::bind(&ChiselServer::CallbackAll_0, this, _1, _2, _3, _4, _5));
+            sync[i]->registerCallback(boost::bind(&ChiselServer::CallbackAll_0, this, _1, _2, _3));
         else if (i==1)
-            sync[i]->registerCallback(boost::bind(&ChiselServer::CallbackAll_1, this, _1, _2, _3, _4, _5));
+            sync[i]->registerCallback(boost::bind(&ChiselServer::CallbackAll_1, this, _1, _2, _3));
         else
-            sync[i]->registerCallback(boost::bind(&ChiselServer::CallbackAll_2, this, _1, _2, _3, _4, _5));
+            sync[i]->registerCallback(boost::bind(&ChiselServer::CallbackAll_2, this, _1, _2, _3));
     }
 }
 
 void ChiselServer::CallbackAll_0(
-    sensor_msgs::ImageConstPtr depth_image, sensor_msgs::CameraInfoConstPtr depth_info,
-    sensor_msgs::ImageConstPtr color_image, sensor_msgs::CameraInfoConstPtr color_info,
+    sensor_msgs::ImageConstPtr depth_image,
+    sensor_msgs::ImageConstPtr color_image,
     nav_msgs::OdometryConstPtr odom)
 {
     OdometryCallback(odom,0);
-
-    ColorCameraInfoCallback(color_info,0);
-    DepthCameraInfoCallback(depth_info,0);
 
     ColorImageCallback(color_image,0);
     DepthImageCallback(depth_image,0);
 }
 
 void ChiselServer::CallbackAll_1(
-    sensor_msgs::ImageConstPtr depth_image, sensor_msgs::CameraInfoConstPtr depth_info,
-    sensor_msgs::ImageConstPtr color_image, sensor_msgs::CameraInfoConstPtr color_info,
+    sensor_msgs::ImageConstPtr depth_image,
+    sensor_msgs::ImageConstPtr color_image,
     nav_msgs::OdometryConstPtr odom)
 {
 ROS_WARN("Left: Before TSDF delay: %.0lfms",(ros::Time::now().toSec() - odom->header.stamp.toSec())*1000.0);
     OdometryCallback(odom,1);
-
-    ColorCameraInfoCallback(color_info,1);
-    DepthCameraInfoCallback(depth_info,1);
 
     ColorImageCallback(color_image,1);
     DepthImageCallback(depth_image,1);
 }
 
 void ChiselServer::CallbackAll_2(
-    sensor_msgs::ImageConstPtr depth_image, sensor_msgs::CameraInfoConstPtr depth_info,
-    sensor_msgs::ImageConstPtr color_image, sensor_msgs::CameraInfoConstPtr color_info,
+    sensor_msgs::ImageConstPtr depth_image,
+    sensor_msgs::ImageConstPtr color_image,
     nav_msgs::OdometryConstPtr odom)
 {
 ROS_WARN("Right: Before TSDF delay: %.0lfms",(ros::Time::now().toSec() - odom->header.stamp.toSec())*1000.0);
     OdometryCallback(odom,2);
-
-    ColorCameraInfoCallback(color_info,2);
-    DepthCameraInfoCallback(depth_info,2);
 
     ColorImageCallback(color_image,2);
     DepthImageCallback(depth_image,2);
@@ -244,11 +236,6 @@ void ChiselServer::OdometryCallback(nav_msgs::OdometryConstPtr odom, int i)
     depthCamera[i].lastPose = colorCamera[i].lastPose;
 
     colorCamera[i].gotPose = depthCamera[i].gotPose = true;
-}
-
-void ChiselServer::DepthCameraInfoCallback(sensor_msgs::CameraInfoConstPtr cameraInfo, int i)
-{
-    SetDepthCameraInfo(cameraInfo, i);
 }
 
 void ChiselServer::SetColorImage(const sensor_msgs::ImageConstPtr &img, int i)
@@ -330,29 +317,6 @@ ROS_WARN("Cam %d: After TSDF delay: %.0lfms",i,(ros::Time::now().toSec() - depth
     }
 }
 
-void ChiselServer::SetColorCameraInfo(const sensor_msgs::CameraInfoConstPtr &info, int i)
-{
-    colorCamera[i].cameraModel = RosCameraToChiselCamera(info);
-    colorCamera[i].cameraModel.SetNearPlane(GetNearPlaneDist());
-    colorCamera[i].cameraModel.SetFarPlane(GetFarPlaneDist());
-    colorCamera[i].gotInfo = true;
-}
-
-void ChiselServer::SetDepthCameraInfo(const sensor_msgs::CameraInfoConstPtr &info, int i)
-{
-    depthCamera[i].cameraModel = RosCameraToChiselCamera(info);
-    depthCamera[i].cameraModel.SetNearPlane(GetNearPlaneDist());
-    depthCamera[i].cameraModel.SetFarPlane(GetFarPlaneDist());
-    depthCamera[i].gotInfo = true;
-}
-
-void ChiselServer::ColorCameraInfoCallback(sensor_msgs::CameraInfoConstPtr cameraInfo, int i)
-{
-    if (IsPaused())
-        return;
-    SetColorCameraInfo(cameraInfo,i);
-}
-
 void ChiselServer::ColorImageCallback(sensor_msgs::ImageConstPtr colorImage, int i)
 {
     if (IsPaused())
@@ -395,18 +359,14 @@ void ChiselServer::SetupProjectionIntegrator(chisel::TruncatorPtr truncator, uin
 
 void ChiselServer::IntegrateLastDepthImage(int i)
 {
-    if (!IsPaused() && depthCamera[i].gotInfo && depthCamera[i].gotPose && lastDepthImage[i].get())
+    if (!IsPaused() && depthCamera[i].gotPose && lastDepthImage[i].get())
     {
 ros::Time t1 = ros::Time::now();
         //ROS_ERROR("CHISEL: Integrating depth scan %d",i);
         auto start = std::chrono::system_clock::now();
         if (useColor)
         {
-            chiselMap->IntegrateDepthScanColor<DepthData, ColorData>(projectionIntegrator, lastDepthImage[i], depthCamera[i].lastPose, depthCamera[i].cameraModel, lastColorImage[i], colorCamera[i].lastPose, colorCamera[i].cameraModel);
-        }
-        else
-        {
-            chiselMap->IntegrateDepthScan<DepthData>(projectionIntegrator, lastDepthImage[i], depthCamera[i].lastPose, depthCamera[i].cameraModel);
+            chiselMap->IntegrateDepthScanColor<DepthData, ColorData>(projectionIntegrator, lastDepthImage[i], depthCamera[i].lastPose, lastColorImage[i], colorCamera[i].lastPose, cam);
         }
 ros::Time t3 = ros::Time::now();
         std::chrono::duration<double> elapsed = std::chrono::system_clock::now() - start;

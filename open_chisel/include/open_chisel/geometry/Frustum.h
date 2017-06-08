@@ -44,6 +44,8 @@ namespace chisel
             void SetFromVectors(const Vec3& forward, const Vec3& pos, const Vec3& right, const Vec3& up, float near, float far, float fov, float aspect);
             void SetFromOpenGLViewProjection(const Mat4x4& view, const Mat4x4& proj);
 
+            void SetFromParams_Sphere(const Transform& view, float farDist);
+
             const Plane& GetBottomPlane() const { return bottom; }
             const Plane& GetTopPlane() const { return top; }
             const Plane& GetLeftPlane() const { return left; }
