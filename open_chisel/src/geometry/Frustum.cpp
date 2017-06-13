@@ -223,15 +223,15 @@ namespace chisel
         Mat3x3 r = view.linear();
         Vec3 p = view.translation();
 
-        Vec3 farTopLeft = Vec3(-farDist, -farDist, farDist);
-        Vec3 farTopRight = Vec3(-farDist, farDist, farDist);
-        Vec3 farBotLeft = Vec3(-farDist, -farDist, -farDist);
-        Vec3 farBotRight = Vec3(-farDist, farDist, -farDist);
+        Vec3 farTopLeft = Vec3(p(0)-farDist, p(1)-farDist, p(2)+farDist);
+        Vec3 farTopRight = Vec3(p(0)-farDist, p(1)+farDist, p(2)+farDist);
+        Vec3 farBotLeft = Vec3(p(0)-farDist, p(1)-farDist, p(2)-farDist);
+        Vec3 farBotRight = Vec3(p(0)-farDist, p(1)+farDist, p(2)-farDist);
 
-        Vec3 nearBotRight = Vec3(farDist, farDist, -farDist);
-        Vec3 nearTopLeft = Vec3(farDist, -farDist, farDist);
-        Vec3 nearTopRight = Vec3(farDist, farDist, farDist);
-        Vec3 nearBotLeft = Vec3(farDist, -farDist, -farDist);
+        Vec3 nearBotRight = Vec3(p(0)+farDist, p(1)+farDist, p(2)-farDist);
+        Vec3 nearTopLeft = Vec3(p(0)+farDist, p(1)-farDist, p(2)+farDist);
+        Vec3 nearTopRight = Vec3(p(0)+farDist, p(1)+farDist, p(2)+farDist);
+        Vec3 nearBotLeft = Vec3(p(0)+farDist, p(1)-farDist, p(2)-farDist);
 
         near = Plane(nearBotLeft, nearTopLeft, nearBotRight);
         far = Plane(farTopRight, farTopLeft, farBotRight);

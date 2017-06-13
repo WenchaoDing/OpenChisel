@@ -56,7 +56,6 @@ namespace chisel
                 float newDist = (oldWeight * oldSDF + weightUpdate * distUpdate) / (weightUpdate + oldWeight);
                 SetSDF(newDist);
                 SetWeight(oldWeight + weightUpdate);
-
             }
 
             inline void Carve()

@@ -100,8 +100,8 @@ class ProjectionIntegrator
     }
 
     template <class DataType, class ColorType>
-    bool IntegrateColor(const std::shared_ptr<const DepthImage<DataType>> &depthImage, const FisheyeCamera &camera, const Transform &depthCameraPose,
-                        const std::shared_ptr<const ColorImage<ColorType>> &colorImage, const Transform &colorCameraPose, Chunk *chunk) const
+    bool IntegrateColor(const std::shared_ptr<const DepthImage<DataType>> &depthImage, const FisheyeCamera &camera, const Transform &cameraPose,
+                        const std::shared_ptr<const ColorImage<ColorType>> &colorImage, Chunk *chunk) const
     {
         assert(chunk != nullptr);
 
@@ -121,17 +121,22 @@ class ProjectionIntegrator
         {
             Color<ColorType> color;
             Vec3 voxelCenter = centroids[i] + origin;
-            Vec3 voxelCenterInCamera = depthCameraPose.linear().transpose() * (voxelCenter - depthCameraPose.translation());
-            Vec3 cameraPos = camera.ProjectPoint(voxelCenterInCamera);
+            Vec3 voxelCenterInCamera = cameraPose.linear().transpose() * (voxelCenter - cameraPose.translation());
+            Vec3 cameraPos = camera.ProjectPoint(voxelCenterInCamera);  // voxel here is (x,y,z)
+            // cameraPos is (u,v, Euclid distance)
 
-            if (!camera.IsPointOnImage(cameraPos) || voxelCenterInCamera.z() < 0)
+            //if (!camera.IsPointOnImage(cameraPos) || voxelCenterInCamera.z() < 0)
+            if (!camera.IsPointOnImage(cameraPos))  // it is OK for FisheyeCamera if the z is < 0
             {
                 continue;
             }
 
-            float voxelDist = voxelCenterInCamera.z();
+            //float voxelDist = voxelCenterInCamera.z();
+            float voxelDist = cameraPos(2);  // FisheyeCamera: use Euclid distance as voxelDist
             float depth = depthImage->DepthAt((int)cameraPos(1), (int)cameraPos(0)); //depthImage->BilinearInterpolateDepth(cameraPos(0), cameraPos(1));
             //float depth = depthImage->BilinearInterpolateDepth(cameraPos(0), cameraPos(1));
+
+            // FisheyeCamera: depth is Euclid distance
 
             if (std::isnan(depth))
             {
@@ -139,34 +144,29 @@ class ProjectionIntegrator
             }
 
             float truncation = truncator->GetTruncationDistance(depth);
-            float surfaceDist = depth - voxelDist;
+            float sphereDist = depth - voxelDist;  // actually in FisheyeCamera, it is sphereDist
 
             if ( depth > 30.0f)//100.0f) //1500.0f  first: is DEP_INF_1, but not DEP_INF. (TODO: use a fix flag or ...)
                 continue;
 
-            if (depth <=100.0f && std::abs(surfaceDist) < truncation + resolutionDiagonal)
+            if (depth <=100.0f && std::abs(sphereDist) < truncation + resolutionDiagonal)
             {
-                Vec3 voxelCenterInColorCamera = colorCameraPose.linear().transpose() * (voxelCenter - colorCameraPose.translation());
-                Vec3 colorCameraPos = camera.ProjectPoint(voxelCenterInColorCamera);
-                if (camera.IsPointOnImage(colorCameraPos))
-                {
-                    ColorVoxel &colorVoxel = chunk->GetColorVoxelMutable(i);
+                ColorVoxel &colorVoxel = chunk->GetColorVoxelMutable(i);
 
-                    if (colorVoxel.GetWeight() < 5)
-                    {
-                        int r = static_cast<int>(colorCameraPos(1));
-                        int c = static_cast<int>(colorCameraPos(0));
-                        colorImage->At(r, c, &color);
-                        colorVoxel.Integrate(color.red, color.green, color.blue, 1);
-                    }
+                if (colorVoxel.GetWeight() < 5)
+                {
+                    int r = static_cast<int>(cameraPos(1));
+                    int c = static_cast<int>(cameraPos(0));
+                    colorImage->At(r, c, &color);
+                    colorVoxel.Integrate(color.red, color.green, color.blue, 1);
                 }
 
                 DistVoxel &voxel = chunk->GetDistVoxelMutable(i);
-                voxel.Integrate(surfaceDist, weighter->GetWeight(surfaceDist, truncation));
+                voxel.Integrate(sphereDist, weighter->GetWeight(sphereDist, truncation));
 
                 updated = true;
             }
-            else if (enableVoxelCarving && surfaceDist > truncation + carvingDist)
+            else if (enableVoxelCarving && sphereDist > truncation + carvingDist)
             {
                 DistVoxel &voxel = chunk->GetDistVoxelMutable(i);
                 //if (voxel.GetWeight() > 0 && voxel.GetSDF() < 1e-5)
@@ -177,7 +177,6 @@ class ProjectionIntegrator
                 }
             }
         }
-        //);
 
         return updated;
     }

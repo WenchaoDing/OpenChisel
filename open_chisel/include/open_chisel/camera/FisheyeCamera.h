@@ -6,6 +6,12 @@
 #include <open_chisel/geometry/Frustum.h>
 #include "camodocal/camera_models/CameraFactory.h"
 
+#define UZH_OCAM
+
+#ifdef UZH_OCAM
+    #include <omni_cam/ocam.h>
+#endif
+
 namespace chisel
 {
     class FisheyeCamera
@@ -26,7 +32,13 @@ namespace chisel
             int width, height;
 
         protected:
+
+        #ifdef UZH_OCAM
+            omni_cam::OCamPtr cam;
+        #else
             camodocal::CameraPtr cam;
+        #endif
+
             cv::Mat mask;            
             float farPlane;
     };

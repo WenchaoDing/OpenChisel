@@ -7,6 +7,7 @@ set(CMAKE_CXX_FLAGS_RELEASE "-O3 -Wall -g")
 
 find_package(catkin REQUIRED COMPONENTS
     camera_model
+    omni_cam
 )
 catkin_package(INCLUDE_DIRS include
     LIBRARIES ${PROJECT_NAME})
@@ -17,10 +18,12 @@ include_directories(${EIGEN3_INCLUDE_DIR})
 
 find_package(OpenCV REQUIRED)
 message("OpenCV_VERSION: ${OpenCV_VERSION}")
+message("omni_cam_INCLUDE_DIRS: ${omni_cam_INCLUDE_DIRS}")
 
 include_directories(
     include
     ${catkin_INCLUDE_DIRS}
+    ${omni_cam_INCLUDE_DIRS}
     )
 
 add_library(${PROJECT_NAME}

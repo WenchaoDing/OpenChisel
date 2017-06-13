@@ -58,12 +58,12 @@ class Chisel
     void IntegratePointCloud(const ProjectionIntegrator &integrator, const PointCloud &cloud, const Transform &extrinsic, float truncation, float maxDist);
 
     template <class DataType, class ColorType>
-    void IntegrateDepthScanColor(const ProjectionIntegrator &integrator, const std::shared_ptr<const DepthImage<DataType>> &depthImage, const Transform &depthExtrinsic, const std::shared_ptr<const ColorImage<ColorType>> &colorImage, const Transform &colorExtrinsic, const FisheyeCamera &camera)
+    void IntegrateDepthScanColor(const ProjectionIntegrator &integrator, const std::shared_ptr<const DepthImage<DataType>> &depthImage, const Transform &extrinsic, const std::shared_ptr<const ColorImage<ColorType>> &colorImage, const FisheyeCamera &camera)
     {
         printf("CHISEL: Integrating a color scan\n");
         auto wall_time = std::chrono::system_clock::now();
         Frustum frustum;
-        camera.SetupFrustum(depthExtrinsic, &frustum);
+        camera.SetupFrustum(extrinsic, &frustum);
 
         ChunkIDList chunksIntersecting;
         chunkManager.GetChunkIDsIntersecting(frustum, &chunksIntersecting);
@@ -103,7 +103,7 @@ class Chisel
             int s = i * blockSize;
             printf("thread: %d, s: %d, blockSize: %d\n", i, s, blockSize);
             threads.push_back(std::thread([s, n, blockSize, this, &m, &chunksIntersecting,
-                                           &depthImage, &camera, &depthExtrinsic, &colorImage, &colorExtrinsic, &integrator,
+                                           &depthImage, &camera, &extrinsic, &colorImage, &integrator,
                                            &isNew, &isGarbage,
                                            &debug_v]()
                                           {
@@ -112,7 +112,7 @@ class Chisel
                                                   ChunkID chunkID = chunksIntersecting[k];
                                                   ChunkPtr chunk = this->chunkManager.GetChunk(chunkID);
 
-                                                  bool needsUpdate = integrator.IntegrateColor(depthImage, camera, depthExtrinsic, colorImage, colorExtrinsic, chunk.get());
+                                                  bool needsUpdate = integrator.IntegrateColor(depthImage, camera, extrinsic, colorImage, chunk.get());
                                                   if (!needsUpdate && isNew[k])
                                                   {
                                                       isGarbage[k] = true;

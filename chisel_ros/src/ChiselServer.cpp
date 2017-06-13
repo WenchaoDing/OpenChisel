@@ -366,7 +366,7 @@ ros::Time t1 = ros::Time::now();
         auto start = std::chrono::system_clock::now();
         if (useColor)
         {
-            chiselMap->IntegrateDepthScanColor<DepthData, ColorData>(projectionIntegrator, lastDepthImage[i], depthCamera[i].lastPose, lastColorImage[i], colorCamera[i].lastPose, cam);
+            chiselMap->IntegrateDepthScanColor<DepthData, ColorData>(projectionIntegrator, lastDepthImage[i], depthCamera[i].lastPose, lastColorImage[i], cam);
         }
 ros::Time t3 = ros::Time::now();
         std::chrono::duration<double> elapsed = std::chrono::system_clock::now() - start;

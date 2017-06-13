@@ -18,10 +18,17 @@ namespace chisel
 
     void FisheyeCamera::loadCameraFile(std::string camera_model_file)
     {
+        farPlane = 0;        
+    #ifdef UZH_OCAM
+        cam = omni_cam::OCam::loadOCam(camera_model_file);
+        width = cam->image_size_(0);
+        height = cam->image_size_(1);
+    #else
         cam = camodocal::CameraFactory::instance()->generateCameraFromYamlFile(camera_model_file);
         width = cam->imageWidth();
         height = cam->imageHeight();
-        farPlane = 0;
+    #endif
+        printf("FisheyeCamera init: width = %d, height = %d\n", width, height);
     }
 
     void FisheyeCamera::loadMask(std::string mask_file)
@@ -40,9 +47,13 @@ namespace chisel
 
         Eigen::Vector3d P(x/norm, y/norm, z/norm);
         Eigen::Vector2d p_dst;
+    #ifdef UZH_OCAM
+        cam->project3(P, &p_dst, NULL);
+    #else
         cam->spaceToPlane(P, p_dst);
+    #endif
 
-        return Vec3(p_dst(0), p_dst(1), norm);  // Vec3(2) ?
+        return Vec3(p_dst(0), p_dst(1), norm);  // Vec3(u,v, Euclid distance)
     }
 
     // Back Projection (2D ---> 3D), depth in Euclidean distance
@@ -54,7 +65,11 @@ namespace chisel
 
         Eigen::Vector2d p(u,v);
         Eigen::Vector3d P_dst;
+    #ifdef UZH_OCAM
+        cam->backProject3(p, &P_dst);
+    #else
         cam->liftSphere(p, P_dst);
+    #endif
         P_dst = P_dst * z;
 
         return Vec3(P_dst(0), P_dst(1), P_dst(2));
