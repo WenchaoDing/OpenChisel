@@ -55,12 +55,6 @@ typedef uint8_t ColorData;
 class ChiselServer
 {
   public:
-    enum class FusionMode
-    {
-        DepthImage,
-        PointCloud
-    };
-
     struct RosCameraTopic
     {
         std::string imageTopic;
@@ -92,8 +86,8 @@ class ChiselServer
 
     ChiselServer();
     ChiselServer(const ros::NodeHandle &nodeHanlde, int chunkSizeX, int chunkSizeY, int chunkSizeZ,
-                 float resolution, bool color, FusionMode fusionMode, bool _calc_mesh,
-                 std::string camera_model_file, std::string mask_file);
+                 float resolution, bool _calc_mesh,
+                 std::string camera_model_file, std::string mask_file, int _number_of_threads);
     virtual ~ChiselServer();
 
     void AdvertiseServices();
@@ -193,15 +187,6 @@ class ChiselServer
         isPaused = paused;
     }
 
-    inline FusionMode GetMode()
-    {
-        return mode;
-    }
-    inline void SetMode(const FusionMode &m)
-    {
-        mode = m;
-    }
-
     void SetDepthImage(const sensor_msgs::ImageConstPtr &img, int);
     void SetColorImage(const sensor_msgs::ImageConstPtr &img, int);
 
@@ -242,13 +227,12 @@ class ChiselServer
     std::vector<std::shared_ptr<chisel::ColorImage<ColorData>>> lastColorImage;
 
     RosPointCloudTopic pointcloudTopic;
-    bool useColor;
     bool hasNewData;
     float nearPlaneDist;
     float farPlaneDist;
     bool isPaused;
-    FusionMode mode;
     bool calc_mesh;
+    int number_of_threads;
 };
 typedef std::shared_ptr<ChiselServer> ChiselServerPtr;
 typedef std::shared_ptr<const ChiselServer> ChiselServerConstPtr;

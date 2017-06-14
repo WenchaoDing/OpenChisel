@@ -30,15 +30,12 @@ namespace chisel
 
     }
 
-    Chunk::Chunk(const ChunkID id, const Eigen::Vector3i& nv, float r, bool useColor) :
+    Chunk::Chunk(const ChunkID id, const Eigen::Vector3i& nv, float r) :
             ID(id), numVoxels(nv), voxelResolutionMeters(r)
     {
         AllocateDistVoxels();
 
-        if(useColor)
-        {
-            AllocateColorVoxels();
-        }
+        AllocateColorVoxels();
 
         origin = Vec3(numVoxels(0) * ID(0) * voxelResolutionMeters, numVoxels(1) * ID(1) * voxelResolutionMeters, numVoxels(2) * ID(2) * voxelResolutionMeters);
     }

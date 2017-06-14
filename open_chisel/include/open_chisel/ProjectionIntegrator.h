@@ -45,60 +45,6 @@ class ProjectionIntegrator
     ProjectionIntegrator(const TruncatorPtr &t, const WeighterPtr &w, float carvingDist, bool enableCarving, const Vec3List &centroids);
     virtual ~ProjectionIntegrator();
 
-    bool Integrate(const PointCloud &cloud, const Transform &cameraPose, Chunk *chunk) const;
-    bool IntegratePointCloud(const PointCloud &cloud, const Transform &cameraPose, Chunk *chunk) const;
-    bool IntegrateColorPointCloud(const PointCloud &cloud, const Transform &cameraPose, Chunk *chunk) const;
-
-    template <class DataType>
-    bool Integrate(const std::shared_ptr<const DepthImage<DataType>> &depthImage, const PinholeCamera &camera, const Transform &cameraPose, Chunk *chunk) const
-    {
-        assert(chunk != nullptr);
-
-        Eigen::Vector3i numVoxels = chunk->GetNumVoxels();
-        float resolution = chunk->GetVoxelResolutionMeters();
-        Vec3 origin = chunk->GetOrigin();
-        float diag = 2.0 * sqrt(3.0f) * resolution;
-        Vec3 voxelCenter;
-        bool updated = false;
-        for (size_t i = 0; i < centroids.size(); i++)
-        {
-            voxelCenter = centroids[i] + origin;
-            Vec3 voxelCenterInCamera = cameraPose.linear().transpose() * (voxelCenter - cameraPose.translation());
-            Vec3 cameraPos = camera.ProjectPoint(voxelCenterInCamera);
-
-            if (!camera.IsPointOnImage(cameraPos) || voxelCenterInCamera.z() < 0)
-                continue;
-
-            float voxelDist = voxelCenterInCamera.z();
-            float depth = depthImage->DepthAt((int)cameraPos(1), (int)cameraPos(0)); //depthImage->BilinearInterpolateDepth(cameraPos(0), cameraPos(1));
-
-            if (depth > 50.)
-            {
-                continue;
-            }
-
-            float truncation = truncator->GetTruncationDistance(depth);
-            float surfaceDist = depth - voxelDist;
-
-            if (fabs(surfaceDist) < truncation + diag)
-            {
-                DistVoxel &voxel = chunk->GetDistVoxelMutable(i);
-                voxel.Integrate(surfaceDist, 1.0f);
-                updated = true;
-            }
-            else if (enableVoxelCarving && surfaceDist > truncation + carvingDist)
-            {
-                DistVoxel &voxel = chunk->GetDistVoxelMutable(i);
-                if (voxel.GetWeight() > 0 && voxel.GetSDF() < 1e-5)
-                {
-                    voxel.Carve();
-                    updated = true;
-                }
-            }
-        }
-        return updated;
-    }
-
     template <class DataType, class ColorType>
     bool IntegrateColor(const std::shared_ptr<const DepthImage<DataType>> &depthImage, const FisheyeCamera &camera, const Transform &cameraPose,
                         const std::shared_ptr<const ColorImage<ColorType>> &colorImage, Chunk *chunk) const
@@ -116,7 +62,7 @@ class ProjectionIntegrator
         //    indexes[i] = i;
         //}
 
-        for (size_t i = 0; i < centroids.size(); i++)
+        for (size_t i = 0; i < centroids.size(); i++)  // centroids.size() \approx 512
         //parallel_for(indexes.begin(), indexes.end(), [&](const size_t& i)
         {
             Color<ColorType> color;

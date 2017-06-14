@@ -66,7 +66,6 @@ int main(int argc, char **argv)
     double truncationDistScale;
     int weight;
     bool useCarving;
-    bool useColor;
     double carvingDist;
     std::string depthImageTopic;
     std::string depthImageTransform;
@@ -78,10 +77,9 @@ int main(int argc, char **argv)
     std::string chunkBoxTopic;
     double nearPlaneDist;
     double farPlaneDist;
-    chisel_ros::ChiselServer::FusionMode mode;
-    std::string modeString;
     std::string pointCloudTopic;
     std::string odomTopic,transform_name;
+    int number_of_threads;
 
     bool three_camera_mode;
     bool calc_mesh;
@@ -97,17 +95,16 @@ int main(int argc, char **argv)
     nh.param("truncation_scale", truncationDistScale, 8.0);
     nh.param("integration_weight", weight, 1);
     nh.param("use_voxel_carving", useCarving, true);
-    useColor = true;
     nh.param("carving_dist_m", carvingDist, 0.05);
     nh.param("voxel_resolution_m", voxelResolution, 0.03);
     nh.param("near_plane_dist", nearPlaneDist, 0.05);
     nh.param("far_plane_dist", farPlaneDist, 5.0);
     nh.param("base_transform", baseTransform, std::string("/camera_link"));
     nh.param("transform_name", transform_name, std::string("/camera_depth_optical_frame"));
-    nh.param("fusion_mode", modeString, std::string("DepthImage"));
 
     nh.param("three_camera_mode", three_camera_mode, false);
     nh.param("calc_mesh", calc_mesh, false);
+    nh.param("number_of_threads", number_of_threads, 16);
 
     nh.param("camera_model_file", camera_model_file, std::string(""));
     nh.param("mask_file", mask_file, std::string(""));
@@ -130,6 +127,8 @@ int main(int argc, char **argv)
     colorImageTopic_vec.push_back(colorImageTopic);
     odomTopic_vec.push_back(odomTopic);
 
+    ROS_INFO("number_of_threads = %d", number_of_threads);
+
     if (three_camera_mode)
     {
         left_odom_topic = "/left_odom_topic";
@@ -149,26 +148,10 @@ int main(int argc, char **argv)
         colorImageTopic_vec.push_back(right_color_image);
     }
 
-    if (modeString == "DepthImage")
-    {
-        ROS_INFO("Mode depth image");
-        mode = chisel_ros::ChiselServer::FusionMode::DepthImage;
-    }
-    else if (modeString == "PointCloud")
-    {
-        ROS_INFO("Mode point cloud");
-        mode = chisel_ros::ChiselServer::FusionMode::PointCloud;
-    }
-    else
-    {
-        ROS_ERROR("Unrecognized fusion mode %s. Recognized modes: \"DepthImage\", \"PointCloud\"\n", modeString.c_str());
-        return -1;
-    }
-
     ROS_INFO("Subscribing.");
 
     server = chisel_ros::ChiselServerPtr(new chisel_ros::ChiselServer(nh, chunkSizeX, chunkSizeY, chunkSizeZ,
-                                         voxelResolution, useColor, mode, calc_mesh, camera_model_file, mask_file));
+                                         voxelResolution, calc_mesh, camera_model_file, mask_file, number_of_threads));
 
     //chisel::TruncatorPtr truncator(new chisel::QuadraticTruncator(truncationDistScale));
     chisel::TruncatorPtr truncator(new chisel::InverseTruncator(truncationDistScale));

@@ -38,16 +38,16 @@ namespace chisel_ros
 {
 
 ChiselServer::ChiselServer()
-    : useColor(false), hasNewData(false), nearPlaneDist(0.05), farPlaneDist(5), isPaused(false), mode(FusionMode::DepthImage), calc_mesh(false)
+    : hasNewData(false), nearPlaneDist(0.05), farPlaneDist(5), isPaused(false), calc_mesh(false)
 {
 }
 
 ChiselServer::ChiselServer(const ros::NodeHandle &nodeHanlde, int chunkSizeX, int chunkSizeY, int chunkSizeZ,
-                           float resolution, bool color, FusionMode fusionMode, bool _calc_mesh,
-                           std::string camera_model_file, std::string mask_file)
-    : nh(nodeHanlde), useColor(color), hasNewData(false), isPaused(false), mode(fusionMode), calc_mesh(_calc_mesh)
+                           float resolution, bool _calc_mesh,
+                           std::string camera_model_file, std::string mask_file, int _number_of_threads)
+    : nh(nodeHanlde), hasNewData(false), isPaused(false), calc_mesh(_calc_mesh), number_of_threads(_number_of_threads)
 {
-    chiselMap.reset(new chisel::Chisel(Eigen::Vector3i(chunkSizeX, chunkSizeY, chunkSizeZ), resolution, color));
+    chiselMap.reset(new chisel::Chisel(Eigen::Vector3i(chunkSizeX, chunkSizeY, chunkSizeZ), resolution));
     cam.loadCameraFile(camera_model_file);
     cam.loadMask(mask_file);
     ROS_INFO("cameraModel loaded: width = %d, height = %d", cam.width, cam.height);
@@ -278,9 +278,7 @@ ros::Time t3,t4,lock,unlock;
     {
         //ROS_INFO("Got data.");
         auto start = std::chrono::system_clock::now();
-        switch (GetMode())
-        {
-            case chisel_ros::ChiselServer::FusionMode::DepthImage:
+
 lock = ros::Time::now();
                 mtx.lock();
 t3 = ros::Time::now();
@@ -288,11 +286,7 @@ t3 = ros::Time::now();
 t4 = ros::Time::now();
                 mtx.unlock();
 unlock = ros::Time::now();
-                break;
-            case chisel_ros::ChiselServer::FusionMode::PointCloud:
-                IntegrateLastPointCloud();
-                break;
-        }
+
         std::chrono::duration<double> elapsed = std::chrono::system_clock::now() - start;
         ROS_INFO("CHISEL: Done with scan, %f ms", elapsed.count() * 1000);
 
@@ -364,18 +358,19 @@ void ChiselServer::IntegrateLastDepthImage(int i)
 ros::Time t1 = ros::Time::now();
         //ROS_ERROR("CHISEL: Integrating depth scan %d",i);
         auto start = std::chrono::system_clock::now();
-        if (useColor)
-        {
-            chiselMap->IntegrateDepthScanColor<DepthData, ColorData>(projectionIntegrator, lastDepthImage[i], depthCamera[i].lastPose, lastColorImage[i], cam);
-        }
+
+        chiselMap->IntegrateDepthScanColor<DepthData, ColorData>(projectionIntegrator, lastDepthImage[i], depthCamera[i].lastPose, lastColorImage[i], cam, number_of_threads);
+
 ros::Time t3 = ros::Time::now();
         std::chrono::duration<double> elapsed = std::chrono::system_clock::now() - start;
+
+printf("Time on IntegrateLastDepthImage: ros::Time = %lf ms, std::chrono = %lf ms\n", (t3-t1).toSec()*1000.0, elapsed.count()*1000.0);
         //ROS_INFO("CHISEL: Done with scan, %f ms", elapsed.count() * 1000);
         PublishLatestChunkBoxes();
 
         start = std::chrono::system_clock::now();
         //ROS_INFO("CHISEL: Updating meshes");
-        chiselMap->UpdateMeshes();
+        chiselMap->UpdateMeshes(number_of_threads);
 
         elapsed = std::chrono::system_clock::now() - start;
         //ROS_INFO("CHISEL: Done with mesh, %f ms", elapsed.count() * 1000);
@@ -384,18 +379,6 @@ ros::Time t2 = ros::Time::now();
 fprintf(TSDF_time_file,"%lf\n",(t2-t1).toSec()*1000.0);
 fflush(TSDF_time_file);
 
-    }
-}
-
-void ChiselServer::IntegrateLastPointCloud()
-{
-    if (!IsPaused() && pointcloudTopic.gotPose && lastPointCloud.get())
-    {
-        //ROS_INFO("Integrating point cloud");
-        chiselMap->IntegratePointCloud(projectionIntegrator, *lastPointCloud, pointcloudTopic.lastPose, 0.1f, farPlaneDist);
-        PublishLatestChunkBoxes();
-        chiselMap->UpdateMeshes();
-        hasNewData = false;
     }
 }
 

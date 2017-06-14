@@ -15,7 +15,6 @@
         <param name="far_plane_dist" value="12.0"/>
         <param name="base_transform" value="/world"/>
         <param name="transform_name" value="/ref_frame"/>
-        <param name="fusion_mode" value="DepthImage"/>
 
         <param name="three_camera_mode" value="false"/>
         <param name="calc_mesh" value="true"/>

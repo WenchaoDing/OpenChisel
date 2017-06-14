@@ -15,13 +15,13 @@
         <param name="far_plane_dist" value="12.0"/>
         <param name="base_transform" value="/world"/>
         <param name="transform_name" value="/ref_frame"/>
-        <param name="fusion_mode" value="DepthImage"/>
 
         <param name="three_camera_mode" value="false"/>
         <param name="calc_mesh" value="true"/>
+        <param name="number_of_threads" value="64" />
 
         <param name="camera_model_file" type="string" value="/home/timer/bags/uzh_datasets/room/info/intrinsics.txt"/>
-        <param name="mask_file" value="$(find chisel_ros)/config/fisheye_mask.jpg" />
+        <param name="mask_file" value="$(find chisel_ros)/config/fisheye_mask_640x480_r_300.jpg" />
 
         <remap from="/odom_topic" to="/motion_stereo_left/odometry"/>
         <remap from="/depth_image" to="/UZH_dataset_warpper/gt_depth_float"/> <!-- depth is Euclid depth -->

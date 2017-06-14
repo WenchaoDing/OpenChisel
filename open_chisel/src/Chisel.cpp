@@ -20,7 +20,6 @@
 // SOFTWARE.
 
 #include <open_chisel/Chisel.h>
-
 #include <open_chisel/io/PLY.h>
 
 namespace chisel
@@ -31,8 +30,8 @@ Chisel::Chisel()
     // TODO Auto-generated constructor stub
 }
 
-Chisel::Chisel(const Eigen::Vector3i &chunkSize, float voxelResolution, bool useColor)
-    : chunkManager(chunkSize, voxelResolution, useColor)
+Chisel::Chisel(const Eigen::Vector3i &chunkSize, float voxelResolution)
+    : chunkManager(chunkSize, voxelResolution)
 {
 }
 
@@ -47,13 +46,13 @@ void Chisel::Reset()
     meshesToUpdate.clear();
 }
 
-void Chisel::UpdateMeshes()
+void Chisel::UpdateMeshes(int number_of_threads)
 {
     printf("number of chunk to update: %lu\n", meshesToUpdate.size());
     static int cnt = 0;
 //    if (cnt++ % 10 == 0)
     {
-        chunkManager.RecomputeMeshes(meshesToUpdate);
+        chunkManager.RecomputeMeshes(meshesToUpdate, number_of_threads);
         meshesToUpdate.clear();
     }
 }
@@ -102,58 +101,6 @@ bool Chisel::SaveAllMeshesToPLY(const std::string &filename)
     }
 
     return success;
-}
-
-void Chisel::IntegratePointCloud(const ProjectionIntegrator &integrator, const PointCloud &cloud, const Transform &extrinsic, float truncation, float maxDist)
-{
-    ChunkIDList chunksIntersecting;
-    chunkManager.GetChunkIDsIntersecting(cloud, extrinsic, truncation, maxDist, &chunksIntersecting);
-    printf("There are %lu chunks intersecting\n", chunksIntersecting.size());
-    if (chunksIntersecting.size() == 0)
-        return;
-    std::mutex mutex;
-    ChunkIDList garbageChunks;
-    //for(const ChunkID& chunkID : chunksIntersecting)
-    parallel_for(chunksIntersecting.begin(), chunksIntersecting.end(), [&](const ChunkID &chunkID)
-                 {
-            bool chunkNew = false;
-
-            mutex.lock();
-            if (!chunkManager.HasChunk(chunkID))
-            {
-                chunkNew = true;
-                chunkManager.CreateChunk(chunkID);
-            }
-
-            ChunkPtr chunk = chunkManager.GetChunk(chunkID);
-            mutex.unlock();
-
-            puts("integrate 1");
-            bool needsUpdate = integrator.Integrate(cloud, extrinsic, chunk.get());
-            puts("integrate 2");
-
-            mutex.lock();
-            if (needsUpdate)
-            {
-                for (int dx = -1; dx <= 1; dx++)
-                {
-                    for (int dy = -1; dy <= 1; dy++)
-                    {
-                        for (int dz = -1; dz <= 1; dz++)
-                        {
-                            meshesToUpdate[chunkID + ChunkID(dx, dy, dz)] = true;
-                        }
-                    }
-                }
-            }
-            else if(chunkNew)
-            {
-                garbageChunks.push_back(chunkID);
-            }
-            mutex.unlock();
-                 });
-    GarbageCollect(garbageChunks);
-    chunkManager.PrintMemoryStatistics();
 }
 
 } // namespace chisel

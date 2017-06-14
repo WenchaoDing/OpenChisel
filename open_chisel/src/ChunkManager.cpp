@@ -41,8 +41,8 @@ ChunkManager::~ChunkManager()
 {
 }
 
-ChunkManager::ChunkManager(const Eigen::Vector3i &size, float res, bool color)
-    : chunkSize(size), voxelResolutionMeters(res), useColor(color)
+ChunkManager::ChunkManager(const Eigen::Vector3i &size, float res)
+    : chunkSize(size), voxelResolutionMeters(res)
 {
     CacheCentroids();
 }
@@ -113,10 +113,7 @@ void ChunkManager::RecomputeMesh(const ChunkID &chunkID, std::mutex &mutex)
     double t = clock();
     GenerateMesh(chunk, mesh.get());
 
-    if (useColor)
-    {
-        ColorizeMesh(mesh.get());
-    }
+    ColorizeMesh(mesh.get());
 
     ComputeNormalsFromGradients(mesh.get());
 
@@ -127,7 +124,7 @@ void ChunkManager::RecomputeMesh(const ChunkID &chunkID, std::mutex &mutex)
     mutex.unlock();
 }
 
-void ChunkManager::RecomputeMeshes(const ChunkSet &chunkMeshes)
+void ChunkManager::RecomputeMeshes(const ChunkSet &chunkMeshes, int number_of_threads)
 {
 
     if (chunkMeshes.empty())
@@ -140,7 +137,7 @@ void ChunkManager::RecomputeMeshes(const ChunkSet &chunkMeshes)
         if (chunk.second)
             chunkIDList.push_back(chunk.first);
 
-    int nThread = 16;
+    int nThread = number_of_threads;
     std::vector<std::thread> threads;
     std::mutex mutex;
     int n = chunkIDList.size();
@@ -170,7 +167,7 @@ void ChunkManager::RecomputeMeshes(const ChunkSet &chunkMeshes)
 
 ChunkMap::iterator ChunkManager::CreateChunk(const ChunkID &id)
 {
-    return AddChunk(std::allocate_shared<Chunk>(Eigen::aligned_allocator<Chunk>(), id, chunkSize, voxelResolutionMeters, useColor));
+    return AddChunk(std::allocate_shared<Chunk>(Eigen::aligned_allocator<Chunk>(), id, chunkSize, voxelResolutionMeters));
 }
 
 void ChunkManager::Reset()

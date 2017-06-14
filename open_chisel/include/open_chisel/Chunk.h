@@ -49,7 +49,7 @@ namespace chisel
         public:
             EIGEN_MAKE_ALIGNED_OPERATOR_NEW
             Chunk();
-            Chunk(const ChunkID id, const Eigen::Vector3i& numVoxels, float resolution, bool useColor);
+            Chunk(const ChunkID id, const Eigen::Vector3i& numVoxels, float resolution);
             virtual ~Chunk();
 
             void AllocateDistVoxels();

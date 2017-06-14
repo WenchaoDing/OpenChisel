@@ -39,7 +39,7 @@ class Chisel
 {
   public:
     Chisel();
-    Chisel(const Eigen::Vector3i &chunkSize, float voxelResolution, bool useColor);
+    Chisel(const Eigen::Vector3i &chunkSize, float voxelResolution);
     virtual ~Chisel();
 
     inline const ChunkManager &GetChunkManager() const
@@ -55,10 +55,10 @@ class Chisel
         chunkManager = manager;
     }
 
-    void IntegratePointCloud(const ProjectionIntegrator &integrator, const PointCloud &cloud, const Transform &extrinsic, float truncation, float maxDist);
-
     template <class DataType, class ColorType>
-    void IntegrateDepthScanColor(const ProjectionIntegrator &integrator, const std::shared_ptr<const DepthImage<DataType>> &depthImage, const Transform &extrinsic, const std::shared_ptr<const ColorImage<ColorType>> &colorImage, const FisheyeCamera &camera)
+    void IntegrateDepthScanColor(const ProjectionIntegrator &integrator, const std::shared_ptr<const DepthImage<DataType>> &depthImage,
+                                 const Transform &extrinsic, const std::shared_ptr<const ColorImage<ColorType>> &colorImage,
+                                 const FisheyeCamera &camera, int number_of_threads)
     {
         printf("CHISEL: Integrating a color scan\n");
         auto wall_time = std::chrono::system_clock::now();
@@ -93,11 +93,12 @@ class Chisel
 
         wall_time = std::chrono::system_clock::now();
 
-        int nThread = 16;
+        int nThread = number_of_threads;
         std::vector<int> debug_v;
         std::vector<std::thread> threads;
         std::mutex m;
         int blockSize = (n + nThread - 1) / nThread;
+        printf("IntegrateDepthScanColor: n = %d, blockSize = %d, nThread = %d\n", n, blockSize, nThread);
         for (int i = 0; i < nThread; i++)
         {
             int s = i * blockSize;
@@ -159,7 +160,7 @@ class Chisel
     }
 
     void GarbageCollect(const ChunkIDList &chunks);
-    void UpdateMeshes();
+    void UpdateMeshes(int number_of_threads);
 
     bool SaveAllMeshesToPLY(const std::string &filename);
     void Reset();

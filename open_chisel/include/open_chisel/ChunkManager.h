@@ -59,7 +59,7 @@ class ChunkManager
 {
   public:
     ChunkManager();
-    ChunkManager(const Eigen::Vector3i &chunkSize, float voxelResolution, bool color);
+    ChunkManager(const Eigen::Vector3i &chunkSize, float voxelResolution);
     virtual ~ChunkManager();
 
     inline const ChunkMap &GetChunks() const
@@ -181,13 +181,8 @@ class ChunkManager
         return allMeshes.find(chunkID) != allMeshes.end();
     }
 
-    inline bool GetUseColor()
-    {
-        return useColor;
-    }
-
     void RecomputeMesh(const ChunkID &chunkID, std::mutex &mutex);
-    void RecomputeMeshes(const ChunkSet &chunks);
+    void RecomputeMeshes(const ChunkSet &chunks, int number_of_threads);
     void ComputeNormalsFromGradients(Mesh *mesh);
 
     inline const Eigen::Vector3i &GetChunkSize() const
@@ -219,7 +214,6 @@ class ChunkManager
     Vec3List centroids;
     Eigen::Matrix<int, 3, 8> cubeIndexOffsets;
     MeshMap allMeshes;
-    bool useColor;
 };
 
 typedef std::shared_ptr<ChunkManager> ChunkManagerPtr;
