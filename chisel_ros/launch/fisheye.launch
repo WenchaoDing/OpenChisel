@@ -10,7 +10,7 @@
         <param name="integration_weight" value="1.0"/>
         <param name="use_voxel_carving" value="true"/>
         <param name="carving_dist_m" value="0.01"/>  <!-- 0.10 -->
-        <param name="voxel_resolution_m" value="0.15"/>  <!-- 0.1 for demo, 0.2 for bbgf 0.06 -->
+        <param name="voxel_resolution_m" value="0.2"/>  <!-- 0.1 for demo, 0.2 for bbgf 0.06 -->
 
         <param name="near_plane_dist" value="0.1"/>
         <param name="far_plane_dist" value="12.0"/>
@@ -21,8 +21,8 @@
         <param name="calc_mesh" value="true"/>
         <param name="number_of_threads" value="16" />
 
-        <param name="camera_model_file" value="$(find chisel_ros)/config/px_mei_camera_calib.yaml" />
-        <param name="mask_file" value="$(find chisel_ros)/config/fisheye_mask.jpg" />
+        <param name="camera_model_file" value="$(find chisel_ros)/config/mei_camera_camera_calib.yaml" />
+        <param name="mask_file" value="$(find chisel_ros)/config/fisheye_mask_752x480.jpg" />
 
         <remap from="/odom_topic" to="/motion_stereo_left/odometry"/>
         <remap from="/depth_image" to="/motion_stereo_left/depth/image_raw"/>   <!-- depth is the Euclid distance -->
