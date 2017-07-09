@@ -10,7 +10,8 @@
         <param name="integration_weight" value="1.0"/>
         <param name="use_voxel_carving" value="true"/>
         <param name="carving_dist_m" value="0.01"/>  <!-- 0.10 -->
-        <param name="voxel_resolution_m" value="0.15"/>  <!-- 0.1 for demo, 0.2 for bbgf 0.06 -->
+        <!-- param name="voxel_resolution_m" value="0.15"/ -->  <!-- 0.1 for demo, 0.2 for bbgf 0.06 -->
+        <param name="voxel_resolution_m" value="0.06"/>  <!-- 0.1 for demo, 0.2 for bbgf 0.06 -->
         <param name="near_plane_dist" value="0.1"/>
         <param name="far_plane_dist" value="12.0"/>
         <param name="base_transform" value="/world"/>

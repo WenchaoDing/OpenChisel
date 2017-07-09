@@ -1,3 +1,13 @@
+How to use UZH dataset:
+```
+1. https://github.com/WayneTimer/omni_cam.git
+2. ./open_chisel/CMakeLists.txt:
+add_definitions( -DUZH_OCAM )  # UZH fisheye dataset, use UZH camera model
+3. Use UZH launch
+```
+
+
+
 OpenChisel
 ==========
 

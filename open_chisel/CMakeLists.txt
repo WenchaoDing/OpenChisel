@@ -5,6 +5,8 @@ set(CMAKE_BUILD_TYPE "Release")
 set(CMAKE_CXX_FLAGS "-std=c++0x")
 set(CMAKE_CXX_FLAGS_RELEASE "-O3 -Wall -g")
 
+# add_definitions( -DUZH_OCAM )  # UZH fisheye dataset, use UZH camera model
+
 find_package(catkin REQUIRED COMPONENTS
     camera_model
     omni_cam

@@ -6,8 +6,6 @@
 #include <open_chisel/geometry/Frustum.h>
 #include "camodocal/camera_models/CameraFactory.h"
 
-#define UZH_OCAM
-
 #ifdef UZH_OCAM
     #include <omni_cam/ocam.h>
 #endif
