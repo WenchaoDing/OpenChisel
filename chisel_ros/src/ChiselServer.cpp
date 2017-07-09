@@ -32,7 +32,9 @@ namespace backward
 #include <open_chisel/truncation/QuadraticTruncator.h>
 #include <open_chisel/weighting/ConstantWeighter.h>
 
+#ifdef PRINT_TIMING
 FILE *TSDF_time_file = fopen("/home/timer/chisel_update.txt","w");
+#endif
 
 namespace chisel_ros
 {
@@ -376,8 +378,11 @@ printf("Time on IntegrateLastDepthImage: ros::Time = %lf ms, std::chrono = %lf m
         //ROS_INFO("CHISEL: Done with mesh, %f ms", elapsed.count() * 1000);
         hasNewData = false;
 ros::Time t2 = ros::Time::now();
+
+#ifdef PRINT_TIMING
 fprintf(TSDF_time_file,"%lf\n",(t2-t1).toSec()*1000.0);
 fflush(TSDF_time_file);
+#endif
 
     }
 }

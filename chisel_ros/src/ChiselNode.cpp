@@ -40,7 +40,9 @@ void pub_map()
 {
     ros::Rate loop_rate(10);
 
+#ifdef PRINT_TIMING
 	FILE *file = fopen("/home/timer/chisel_render.txt","w");
+#endif
 
     while (ros::ok())
     {
@@ -50,10 +52,16 @@ ros::Time t1 = ros::Time::now();
         server->PublishMeshes(ros::Time::now());
         server->mtx.unlock();
 ros::Time t2 = ros::Time::now();
+
+#ifdef PRINT_TIMING
 fprintf(file,"%lf\n",(t2-t1).toSec()*1000.0);
 fflush(file);
+#endif
     }
+
+#ifdef PRINT_TIMING
 	fclose(file);
+#endif
 }
 
 int main(int argc, char **argv)
